@@ -31,6 +31,7 @@ test('critical provisioning defaults and global XML resources are present', () =
     const template = fs.readFileSync('src/routes/api/template.xml', 'utf8');
     assert.match(template, /<member priority="0">/);
     assert.match(fs.readFileSync('src/data/misc/DialTemplate.xml', 'utf8'), /<dialTemplate>/);
+    assert.match(fs.readFileSync('src/data/misc/DialTemplate.xml', 'utf8'), /<versionStamp>[0-9a-f-]+<\/versionStamp>/);
     assert.match(fs.readFileSync('src/data/misc/AppDialRules.xml', 'utf8'), /<DialRules>/);
 });
 

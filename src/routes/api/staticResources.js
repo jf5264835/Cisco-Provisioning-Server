@@ -18,6 +18,8 @@ async function validateXml(resource, xml) {
     const root = Object.keys(parsed || {})[0];
     if (!resource.roots.includes(root)) throw new Error(`Expected <${resource.roots[0]}> as the root element.`);
     if (root === 'dialTemplate') {
+        const versionStamp = parsed[root].versionStamp;
+        if (typeof versionStamp !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(versionStamp)) throw new Error('Dial template versionStamp must be a UUID.');
         const templates = parsed[root].TEMPLATE === undefined ? [] : [].concat(parsed[root].TEMPLATE);
         for (const template of templates) {
             const attributes = template.$ || {};

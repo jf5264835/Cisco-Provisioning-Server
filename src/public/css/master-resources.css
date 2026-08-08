@@ -164,6 +164,7 @@ footer {
   white-space: nowrap;
 }
 .tabContainer .item {
+  border: 0;
   background-color: #4c6c7e;
   color: gainsboro;
   padding: 0.5rem;
@@ -340,14 +341,17 @@ footer {
 
 .dialRuleRow {
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr 1fr auto;
+  grid-template-columns: 1.5fr 1.4fr 0.65fr 1.2fr 0.65fr auto;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
 }
 .dialRuleRow label {
   color: gainsboro;
 }
-.dialRuleRow input {
+.dialRuleRow label > span {
+  display: none;
+}
+.dialRuleRow input, .dialRuleRow select {
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -357,6 +361,60 @@ footer {
   border: 1px solid #5d879f;
   border-radius: 5px;
   padding: 0.4rem;
+}
+
+.dialRuleHeadings {
+  display: grid;
+  grid-template-columns: 1.5fr 1.4fr 0.65fr 1.2fr 0.65fr auto;
+  gap: 0.5rem;
+  color: gainsboro;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.dialHelp {
+  background: #243944;
+  color: #e3edf2;
+  border-left: 4px solid #5d879f;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.dialHelp code {
+  color: white;
+  background: rgb(41, 40, 40);
+  padding: 0.1rem 0.3rem;
+}
+
+.versionStampRow {
+  display: grid;
+  grid-template-columns: max-content minmax(260px, 520px) max-content;
+  align-items: center;
+  gap: 0.5rem;
+  color: gainsboro;
+  margin-bottom: 1rem;
+}
+
+.versionStampRow input {
+  background: rgb(41, 40, 40);
+  color: white;
+  border: 1px solid #5d879f;
+  border-radius: 5px;
+  padding: 0.5rem;
+}
+
+.versionStampRow small {
+  grid-column: 2/-1;
+}
+
+.advancedDialRules {
+  margin-top: 1.5rem;
+  color: gainsboro;
+}
+
+.advancedDialRules summary {
+  cursor: pointer;
+  color: white;
 }
 
 .xmlEditor {
@@ -392,6 +450,21 @@ footer {
   }
   .dialRuleRow {
     grid-template-columns: 1fr;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #4c6c7e;
+  }
+  .dialRuleRow label > span {
+    display: block;
+    font-size: 0.8rem;
+  }
+  .dialRuleHeadings {
+    display: none;
+  }
+  .versionStampRow {
+    grid-template-columns: 1fr;
+  }
+  .versionStampRow small {
+    grid-column: auto;
   }
 }
 
