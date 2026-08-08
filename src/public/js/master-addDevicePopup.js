@@ -47,7 +47,7 @@ const phoneSettingsSchema = [
             { id: "deviceSecurityMode", label: "Device security mode", tag: "deviceSecurityMode", path: ["device", "deviceSecurityMode", 0], type: "number" },
             { id: "encrConfig", label: "Encrypted config", tag: "encrConfig", path: ["device", "encrConfig", 0], options: boolOptions },
             { id: "certHash", label: "Certificate hash", tag: "certHash", path: ["device", "certHash", 0], type: "text" },
-            { id: "capfAuthMode", label: "CAPF auth mode", tag: "capfAuthMode", path: ["device", "capfAuthMode", 0], type: "number" },
+            { id: "capfAuthMode", label: "CAPF auth mode", tag: "capfAuthMode", path: ["device", "capfAuthMode", 0], options: [{ value: "", label: "Not set" }, { value: "1", label: "By authentication string" }, { value: "2", label: "By existing certificate" }, { value: "3", label: "By null string" }] },
             { id: "userId", label: "User ID", tag: "userId", path: ["device", "userId", 0], type: "text" },
             { id: "ownerId", label: "Owner ID", tag: "ownerId", path: ["device", "ownerId", 0], type: "text" }
         ]
@@ -301,6 +301,7 @@ function renderPhoneSettings() {
             } else {
                 control = document.createElement("input");
                 control.type = setting.type || "text";
+                if (control.type === "number") control.step = "1";
                 if (setting.placeholder) control.placeholder = setting.placeholder;
             }
             control.id = setting.id;
