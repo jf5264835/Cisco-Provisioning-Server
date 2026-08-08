@@ -223,9 +223,12 @@ function returnDropdownData(type, selectID, prefill = [null, null, null, null, n
             <label for="intercomautoAnswerMode_${selectID}">Auto Answer Mode:</label>
             <input id="intercomautoAnswerMode_${selectID}" type="text" placeholder="Auto Answer with Speakerphone" value="${prefill[4] !== null ? prefill[4] : ''}" /><br/>
 
-            <!--CallWaiting (default 3)-->
+            <!--CallWaiting (default enabled)-->
             <label for="callWaiting_${selectID}">Call Waiting:</label>
-            <input id="callWaiting_${selectID}" type="number" placeholder="3" value="${prefill[5] !== null ? prefill[5] : ''}" /><br/>
+            <select id="callWaiting_${selectID}">
+                <option value="1" ${prefill[5] === null || String(prefill[5]) === '1' ? 'selected' : ''}>Enabled</option>
+                <option value="0" ${String(prefill[5]) === '0' ? 'selected' : ''}>Disabled</option>
+            </select><br/>
 
             <!--MaxNumCalls (default 1)-->
             <label for="maxNumCalls_${selectID}">MaxNumCalls:</label>

@@ -12,7 +12,7 @@ const phoneModelMap = {
     "placeholder": "Not Specified"
 };
 
-const {xmlBuild, builder, convert} = require('xmlbuilder2');
+const { create } = require('xmlbuilder2');
 const createLog = require("../../server/logger");
 
 const { parseString, Parser } = require('xml2js'); // Built-in module for XML parsing
@@ -20,6 +20,7 @@ const { response } = require('express');
 const fs = require('fs');
 const path = require('path');
 const net = require('net');
+const { escapeXml, removeXmlElements, replaceOptionalXmlPlaceholders, validateCommonProvisioning, validatePhoneSettings } = require('./configValidation');
 
 const defaultPhoneSettings = {
     cnfJoinEnabled: "true",
@@ -112,7 +113,7 @@ const defaultPhoneSettings = {
     markCallAsSpam: "1",
     callParkMonitor: "1",
     allCallsOnPrimary: "0",
-    softKeyControl: "1",
+    softkeyControl: "1",
     settingsAccess: "1",
     webProtocol: "0",
     webAccess: "0",
@@ -148,7 +149,7 @@ const defaultPhoneSettings = {
     enableCdpPcPort: "0",
     enableLldpSwPort: "1",
     enableLldpPcPort: "0",
-    cdpEnable: "true",
+    cdpEnable: "1",
     powerNegotiation: "0",
     outOfRangeAlert: "0",
     scanningMode: "2",
@@ -200,7 +201,7 @@ const defaultPhoneSettings = {
     advertiseG722Codec: "1",
     rollover: "0",
     joinAcrossLines: "0",
-    capfAuthMode: "0",
+    capfAuthMode: "",
     certHash: "",
     encrConfig: "false",
     userId: "",
@@ -214,8 +215,7 @@ const defaultPhoneSettings = {
 };
 
 function normalizePhoneSettings(settings = {}) {
-    const populatedSettings = Object.fromEntries(Object.entries(settings || {}).filter(([, value]) => value !== undefined && value !== null && value !== ""));
-    return { ...defaultPhoneSettings, ...populatedSettings };
+    return { ...defaultPhoneSettings, ...settings };
 }
 
 function normalizeCommonProvisioningAttributes(attributes = {}) {
@@ -249,6 +249,9 @@ async function validateProvisioningXml(xml) {
 
     const parser = new Parser();
     try {
+        // xml2js silently accepts content after the first root element. Parse with
+        // xmlbuilder2 first so concatenated provisioning documents are rejected.
+        create(xml);
         const parsed = await parser.parseStringPromise(xml);
         if (!parsed || !parsed.device) {
             return { valid: false, message: "Provisioning XML root element must be <device>." };
@@ -307,7 +310,11 @@ module.exports = function(app) {
             res.json({code: 1, message: "Invalid JSON"});
             return;
         }
-        json.cpa = normalizeCommonProvisioningAttributes(json.cpa);
+        const cpaValidation = validateCommonProvisioning(json.cpa);
+        if (cpaValidation.error) return res.status(400).json({ code: 1, message: cpaValidation.error });
+        json.cpa = normalizeCommonProvisioningAttributes(cpaValidation.value);
+        const phoneSettingsValidation = validatePhoneSettings(json.phoneSettings, defaultPhoneSettings);
+        if (phoneSettingsValidation.error) return res.status(400).json({ code: 1, message: phoneSettingsValidation.error });
         json.meta.deviceMAC = String(json.meta.deviceMAC || '').toUpperCase();
         if (!/^[0-9A-F]{12}$/.test(json.meta.deviceMAC)) return res.status(400).json({ code: 1, message: "MAC address must be exactly 12 hexadecimal characters without colons or separators." });
         if (json.cust.deviceIP && !net.isIP(String(json.cust.deviceIP))) return res.status(400).json({ code: 1, message: "Device IP must be a valid IPv4 or IPv6 address when provided." });
@@ -332,7 +339,8 @@ module.exports = function(app) {
 
         console.log("Device Model: " + json.cust.deviceModel);
         console.log("Mapped Device Model from number: " + phoneModelMap[json.cust.deviceModel]);
-        const phoneSettings = normalizePhoneSettings(json.phoneSettings);
+        const phoneSettings = normalizePhoneSettings(phoneSettingsValidation.value);
+        if (!phoneSettings.softKeyFile) phoneSettings.softkeyControl = "";
         if (phoneSettings.freepbxVoicemailMenu === "1" && phoneSettings.messagesURL.trim() === "") {
             phoneSettings.messagesURL = `${getPublicBaseUrl(req)}/services/freepbx/voicemail?mac=${encodeURIComponent(json.meta.deviceMAC)}`;
         }
@@ -430,6 +438,9 @@ module.exports = function(app) {
         //Convert lineData to an array.
         lineData = convertToArrayWithEmptySlots(lineData);
 
+        const invalidCallWaitingLine = lineData.find((line) => String(line?.type) === "6" && line.callWaiting !== undefined && !["0", "1"].includes(String(line.callWaiting)));
+        if (invalidCallWaitingLine) return res.status(400).send({ code: 1, message: "Call waiting must be enabled (1) or disabled (0)." });
+
         console.log("The Linedata: " + lineData);
 
         let builtLineXML = ""; //Will be processed from lineData
@@ -468,19 +479,19 @@ module.exports = function(app) {
                         <featureLabel></featureLabel>
                         <proxy>USECALLMANAGER</proxy>
                         <port>${json.cpa.sipPort}</port>
-                        <name>${line.lineName}</name>
-                        <displayName>${line.displayName}</displayName>
+                        <name>${escapeXml(line.lineName ?? "")}</name>
+                        <displayName>${escapeXml(line.displayName ?? "")}</displayName>
                         <autoAnswer>
-                            <autoAnswerEnabled>${line.autoAnswer}</autoAnswerEnabled>
+                            <autoAnswerEnabled>${escapeXml(line.autoAnswer ?? "")}</autoAnswerEnabled>
                         </autoAnswer>
-                        <callWaiting>3</callWaiting>
-                        <authName>${line.authname}</authName>
-                        <authPassword>${line.authpassword}</authPassword>
-                        <contact></contact>
+                        <callWaiting>1</callWaiting>
+                        <authName>${escapeXml(line.authname ?? "")}</authName>
+                        <authPassword>${escapeXml(line.authpassword ?? "")}</authPassword>
+                        <contact>${escapeXml(line.lineName ?? "")}</contact>
                         <sharedLine>false</sharedLine>
                         <messageWaitingLampPolicy>3</messageWaitingLampPolicy>
                         <messageWaitingAMWI>0</messageWaitingAMWI>
-                        <messagesNumber>${phoneSettings.voicemailDialCode}</messagesNumber>
+                        <messagesNumber>${escapeXml(phoneSettings.voicemailDialCode)}</messagesNumber>
                         <ringSettingIdle>4</ringSettingIdle>
                         <ringSettingActive>5</ringSettingActive>
                         <forwardCallInfoDisplay>
@@ -503,8 +514,8 @@ module.exports = function(app) {
                     const case2 = `
                     <line button="${lineNumber}">
                         <featureID>2</featureID>
-                        <featureLabel>${line.speedDialName}</featureLabel>
-                        <speedDialNumber>${line.speedDialNumber}</speedDialNumber>
+                        <featureLabel>${escapeXml(line.speedDialName ?? "")}</featureLabel>
+                        <speedDialNumber>${escapeXml(line.speedDialNumber ?? "")}</speedDialNumber>
                     </line>`;
 
                     builtLineXML += case2;
@@ -516,8 +527,8 @@ module.exports = function(app) {
                     const case3 = `
                     <line button="${lineNumber}">
                         <featureID>20</featureID>
-                        <featureLabel>${line.serviceuriName}</featureLabel>
-                        <serviceURI>${line.serviceURI}</serviceURI>
+                        <featureLabel>${escapeXml(line.serviceuriName ?? "")}</featureLabel>
+                        <serviceURI>${escapeXml(line.serviceURI ?? "")}</serviceURI>
                     </line>`;
 
                     builtLineXML += case3;
@@ -532,9 +543,9 @@ module.exports = function(app) {
                     const case5 = `
                     <line button="${lineNumber}">
                         <featureID>21</featureID>
-                        <featureLabel>${line.BLFName}</featureLabel>
-                        <featureOptionMask>${line.blfOptionMask}</featureOptionMask>
-                        <speedDialNumber>${line.blfExtension}</speedDialNumber>
+                        <featureLabel>${escapeXml(line.BLFName ?? "")}</featureLabel>
+                        <featureOptionMask>${escapeXml(line.blfOptionMask ?? "")}</featureOptionMask>
+                        <speedDialNumber>${escapeXml(line.blfExtension ?? "")}</speedDialNumber>
                     </line>`;
 
                     builtLineXML += case5;
@@ -546,16 +557,16 @@ module.exports = function(app) {
                         <featureID>23</featureID>
                         <featureLabel>Intercom</featureLabel>
                         <proxy>USECALLMANAGER</proxy>
-                        <port>${line.intercomport}</port>
-                        <name>${line.intercomName}</name>
-                        <displayName>${line.intercomdisplayname}</displayName>
+                        <port>${escapeXml(line.intercomport ?? "")}</port>
+                        <name>${escapeXml(line.intercomName ?? "")}</name>
+                        <displayName>${escapeXml(line.intercomdisplayname ?? "")}</displayName>
                         <autoAnswer>
-                            <autoAnswerEnabled>${line.intercomautoanswer}</autoAnswerEnabled>
-                            <autoAnswerMode>${line.intercomautoAnswerMode}</autoAnswerMode>
+                            <autoAnswerEnabled>${escapeXml(line.intercomautoanswer ?? "")}</autoAnswerEnabled>
+                            <autoAnswerMode>${escapeXml(line.intercomautoAnswerMode ?? "")}</autoAnswerMode>
                         </autoAnswer>
-                        <callWaiting>${line.callWaiting}</callWaiting>
-                        <maxNumCalls>${line.maxNumCalls}</maxNumCalls>
-                        <busyTrigger>${line.busyTrigger}</busyTrigger>
+                        <callWaiting>${escapeXml(line.callWaiting ?? "")}</callWaiting>
+                        <maxNumCalls>${escapeXml(line.maxNumCalls ?? "")}</maxNumCalls>
+                        <busyTrigger>${escapeXml(line.busyTrigger ?? "")}</busyTrigger>
                     </line>
                     `;
                     currentPhoneLineIndex++;
@@ -566,7 +577,7 @@ module.exports = function(app) {
                     const case7 = `
                     <line button="${lineNumber}">
                         <featureID>27</featureID>
-                        <featureLabel>${line.featureLabel}</featureLabel>
+                        <featureLabel>${escapeXml(line.featureLabel ?? "")}</featureLabel>
                     </line>`;
 
                     builtLineXML += case7;
@@ -578,7 +589,7 @@ module.exports = function(app) {
                     const case8 = `
                     <line button="${lineNumber}">
                         <featureID>126</featureID>
-                        <featureLabel>${line.featureLabel}</featureLabel>
+                        <featureLabel>${escapeXml(line.featureLabel ?? "")}</featureLabel>
                     </line>`;
                     builtLineXML += case8;
                     break;
@@ -588,7 +599,7 @@ module.exports = function(app) {
                     const case9 = `
                     <line button="${lineNumber}">
                         <featureID>127</featureID>
-                        <featureLabel>${line.featureLabel}</featureLabel>
+                        <featureLabel>${escapeXml(line.featureLabel ?? "")}</featureLabel>
                     </line>`;
                     builtLineXML += case9;
 
@@ -599,7 +610,7 @@ module.exports = function(app) {
                     const case10 = `
                     <line button="${lineNumber}">
                         <featureID>128</featureID>
-                        <featureLabel>${line.featureLabel}</featureLabel>
+                        <featureLabel>${escapeXml(line.featureLabel ?? "")}</featureLabel>
                     </line>`;
                     builtLineXML += case10;
 
@@ -610,7 +621,7 @@ module.exports = function(app) {
                     const case11 = `
                     <line button="${lineNumber}">
                         <featureID>130</featureID>
-                        <featureLabel>${line.featureLabel}</featureLabel>
+                        <featureLabel>${escapeXml(line.featureLabel ?? "")}</featureLabel>
                     </line>`;
                     builtLineXML += case11;
                     break;
@@ -620,7 +631,7 @@ module.exports = function(app) {
                     const case12 = `
                     <line button="${lineNumber}">
                         <featureID>137</featureID>
-                        <featureLabel>${line.featureLabel}</featureLabel>
+                        <featureLabel>${escapeXml(line.featureLabel ?? "")}</featureLabel>
                     </line>`;
                     builtLineXML += case12;
 
@@ -631,7 +642,7 @@ module.exports = function(app) {
                     const case13 = `
                     <line button="${lineNumber}">
                         <featureID>139</featureID>
-                        <featureLabel>${line.featureLabel}</featureLabel>
+                        <featureLabel>${escapeXml(line.featureLabel ?? "")}</featureLabel>
                     </line>`;
                     builtLineXML += case13;
 
@@ -642,7 +653,7 @@ module.exports = function(app) {
                     const case14 = `
                     <line button="${lineNumber}">
                         <featureID>159</featureID>
-                        <featureLabel>${line.featureLabel}</featureLabel>
+                        <featureLabel>${escapeXml(line.featureLabel ?? "")}</featureLabel>
                     </line>`;
                     builtLineXML += case14;
                     break;
@@ -670,22 +681,38 @@ module.exports = function(app) {
 
         //Loop through variableAttributeMap. Search for all keys within xmlTemplate and replace them with their values.
         let replaceCount = 0;
-        Object.keys(variableAttributeMap).forEach((key) => {
-            const placeholder = "<!--" + key + "-->";
-            xmlTemplate = xmlTemplate.split(placeholder).join(variableAttributeMap[key] ?? "");
-            replaceCount++;
-        });
+        xmlTemplate = replaceOptionalXmlPlaceholders(xmlTemplate, variableAttributeMap);
+        replaceCount = Object.keys(variableAttributeMap).length;
 
         xmlTemplate = xmlTemplate.split("<!--sipLines-->").join(builtLineXML);
         xmlTemplate = xmlTemplate.replace("<!--DO NOT MODIFY THIS FILE.-->", "<!--This file was automatically generated by CPM. Do not modify it unless you need to. Corrupting this file may cause undesired server operation or crash.-->");
 
-        xmlTemplate = xmlTemplate.split("<!--sharedDeviceSecretID-->").join(process.env.SHARED_DEVICE_SECRET ?? "");
-        xmlTemplate = xmlTemplate.split("<!--sharedDeviceSecretPassword-->").join(process.env.SHARED_DEVICE_SECRET ?? "");
+        const sshCredentials = phoneSettings.sshAccess === "1" ? process.env.SHARED_DEVICE_SECRET ?? "" : "";
+        xmlTemplate = replaceOptionalXmlPlaceholders(xmlTemplate, {
+            sharedDeviceSecretID: sshCredentials,
+            sharedDeviceSecretPassword: sshCredentials
+        });
+
+        // The UI represents the 8845 in model type 6. These settings are not
+        // supported by that model and must not be sent in its configuration.
+        if (String(json.cust.deviceModel) === "6") {
+            xmlTemplate = removeXmlElements(xmlTemplate, [
+                "wifi", "sdio", "webAdmin", "cdpEnable", "outOfRangeAlert",
+                "scanningMode", "appButtonTimer", "appButtonPriority", "sendKeyAction",
+                "powerOffWhenCharging", "homeScreen", "accessContacts", "accessFavorites",
+                "accessVoicemail", "accessApps"
+            ]);
+        }
 
         console.log("Postprocess complete, replaced " + replaceCount + " variables (excluding sipLines).");
 
         console.log("Final XML: " + xmlTemplate);
 
+
+        const generatedXmlValidation = await validateProvisioningXml(xmlTemplate);
+        if (!generatedXmlValidation.valid) {
+            return res.status(500).send({ code: 1, message: `Server generated invalid provisioning XML: ${generatedXmlValidation.message}` });
+        }
 
         let responseMethodText = deviceExists ? "Updated" : "Created";
         try {
@@ -719,3 +746,7 @@ function persistDeviceConfiguration(serverData, cache, previousProvisioningFile,
         }
     }
 }
+
+// Exported for the template API so device and template submissions use one schema.
+module.exports.defaultPhoneSettings = defaultPhoneSettings;
+module.exports.validateProvisioningXml = validateProvisioningXml;
