@@ -22,9 +22,9 @@
 <body>
     <!--Navigation Elements-->
     <nav>
-        <span><%= username %>&ensp;<i class="icmn-user3"></i></span>
+        <span onclick="window.location='/dashboard/settings'"><%= typeof name !== 'undefined' ? name : username %>&ensp;<i class="icmn-user3"></i></span>
 
-        <span>Settings&ensp;<i class="icmn-cog"></i></span>
+        <span onclick="window.location='/dashboard/settings'">Settings&ensp;<i class="icmn-cog"></i></span>
 
         <span onclick="window.location = ('/logout');">Logout&ensp;<i class="icmn-exit3"></i></span>
 
@@ -70,8 +70,8 @@
                 </thead>
                 <tbody>
                     <% for (let i = 0; i < devices.length; i++) { %>
-                        <tr>
-                            <td><!--Checkbox --></td>
+                        <tr data-device-uuid="<%= devices[i].uuid %>">
+                            <td><input type="checkbox" class="device-selection" value="<%= devices[i].uuid %>" aria-label="Select <%= devices[i].name || devices[i].uuid %>"></td>
                             <td><%= devices[i].name || 'N/A' %></td>
                             <td><%= devices[i].ip || 'N/A' %></td>
                             <td><%= devices[i].mac || 'N/A' %></td>
@@ -79,7 +79,9 @@
                             <td><%= devices[i].groups || 'None' %></td>
                             <td><%= devices[i].extension || 'N/A' %></td>
                             <td>
-                                <% if (devices[i].enabled) { %>
+                                <% if (!devices[i].configurationHealthy) { %>
+                                    <span data-after-text="Config Missing" data-after-type="red-pill"><span class="hidden">Configuration missing</span></span>
+                                <% } else if (devices[i].enabled) { %>
                                     <span data-after-text="Enabled" data-after-type="green-pill"><span class="hidden">Enabled <!--Allows For DT Searching--></span></span>
                                 <% } else { %>
                                     <span data-after-text="Disabled" data-after-type="red-pill"><span class="hidden">Disabled</span> <!--Allows for DT Searching --></span>
@@ -96,7 +98,7 @@
                             </td>
                             <td>
                                 <a title="Edit Device" href="/dashboard/addDevice?astat=mod&data=<%= devices[i].uuid %>"><i class="icmn-pencil"></i></a>&nbsp;
-                                <a title="Duplicate Device" href="/"><i class="icmn-copy4 g"></i></a>&nbsp;
+                                <a title="Duplicate Device" href="/dashboard/addDevice?astat=duplicate&data=<%= devices[i].uuid %>"><i class="icmn-copy4 g"></i></a>&nbsp;
                                 <a title="Copy UUID" href="javascript:cp(`<%= devices[i].uuid %>`, true, 'UUID');"><i class="icmn-price-tag3 y"></i></a>
                             </td>
                         </tr>
@@ -136,12 +138,9 @@
         $('#deviceDisplay').DataTable({
             "order": [[0, "asc"]],
             "columnDefs": [{
-                "targets": 0, // The CHKBOX column
+                "targets": 0,
                 "searchable": false,
-                "orderable": false,
-                "render": function (data, type, full, meta) {
-                    return '<input type="checkbox" class="checkbox">';
-                }
+                "orderable": false
             }]
         });
 

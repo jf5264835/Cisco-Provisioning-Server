@@ -28,8 +28,20 @@ function a_deselectAll() {
     checkboxes.prop('checked', false);
 }
 
-function a_deleteSelection() {
-
+async function a_deleteSelection() {
+    const uuids = Array.from(document.querySelectorAll('.device-selection:checked'), (checkbox) => checkbox.value);
+    if (!uuids.length) return createToast(1, "No rows are selected. Please select device(s) and try again.");
+    if (!window.confirm(`Permanently delete ${uuids.length} selected device(s) and their generated configuration files?`)) return;
+    try {
+        const response = await fetch('/api/devices', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uuids }) });
+        const result = await response.json();
+        if (!response.ok || result.code !== 0) throw new Error(result.message || 'Delete failed.');
+        uuids.forEach((uuid) => document.querySelector(`[data-device-uuid="${uuid.replace(/[^A-Za-z0-9_-]/g, '')}"]`)?.remove());
+        createToast(0, result.message);
+        window.setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+        createToast(1, error.message);
+    }
 }
 
 function a_reprovisionSelection() {

@@ -37,7 +37,12 @@ module.exports = function (app) {
         //Load cache (we aren't modifying it) and find the device with the matching MAC address.
         const data = jsonData.get();
         const device = data.devices.find(device => device.mac === macAddress);
-        const SEPFileName = device.provisioningFile;
+        if (!device) {
+            process.totalProvisioningErrors += 1;
+            res.status(404).json({ code: 1, error: "Device not found", mac: macAddress });
+            return;
+        }
+        const SEPFileName = device.provisioningFile || `SEP${macAddress}.cnf.xml`;
 
         //Load any provisioning policies from the cache. If phones are assigned static IPs, they can be whitelisted if trustlist is not installed.
         const ipRestricted = device.security.ipRestricted;
@@ -59,14 +64,6 @@ module.exports = function (app) {
 
 
 
-        if (!device) {
-            //The Device Doesn't Exist :(
-            //Send 404 headers to requesting device/phone.
-            process.totalProvisioningErrors += 1;
-            res.status(404).json({ code: 1, error: "Device not found", mac: macAddress });
-            return;
-        }
-
         //Verify that the device is enabled.
         if (!device.enabled) {
             process.totalProvisioningErrors += 1;
@@ -79,7 +76,7 @@ module.exports = function (app) {
             if (err) {
                 //If the file doesn't exist, send a 404 error to the requesting device/phone.
                 process.totalProvisioningErrors += 1;
-                res.status(404).json({ code: 2, error: "Provisioning file exists but is not found. Contact System Administrator.", mac: macAddress });
+                if (!res.headersSent) res.status(404).json({ code: 2, error: "Device record exists but its provisioning configuration file is missing.", mac: macAddress });
             }
         });
 
