@@ -56,6 +56,24 @@ test('resource tabs hide inactive panels', () => {
     assert.match(view, /id="appDialRules" data-resource-panel hidden/);
 });
 
+test('resource tabs render each dialing editor once and keep global resources media-only', () => {
+    const view = fs.readFileSync('src/views/resources.ejs', 'utf8');
+    assert.equal((view.match(/id="dialTemplate" data-resource-panel/g) || []).length, 1);
+    assert.equal((view.match(/id="appDialRules" data-resource-panel/g) || []).length, 1);
+
+    const globalResources = view.slice(view.indexOf('id="globalResources"'), view.indexOf('id="dialTemplate" data-resource-panel'));
+    assert.match(globalResources, /id="wallpaperForm"/);
+    assert.match(globalResources, /id="ringtoneForm"/);
+    assert.doesNotMatch(globalResources, /DialTemplate|AppDialRules|Global Dialing Resources/);
+});
+
+test('legacy provisioning hostname is absent from generated defaults and sample configuration', () => {
+    const defaults = fs.readFileSync('src/routes/api/dmod.js', 'utf8');
+    const sampleConfig = fs.readFileSync('src/data/config/SEP00BB609D65B6.cnf.xml', 'utf8');
+    assert.doesNotMatch(defaults, /provisioning\.centurate\.com/i);
+    assert.doesNotMatch(sampleConfig, /provisioning\.centurate\.com/i);
+});
+
 test('container publication workflow and deployment files exist', () => {
     for (const file of ['Dockerfile', 'compose.yaml', '.github/workflows/container.yml']) {
         assert.equal(fs.existsSync(file), true, `${file} should exist`);

@@ -172,7 +172,7 @@ const defaultPhoneSettings = {
     networkLocaleVersion: "",
     deviceSecurityMode: "1",
     idleTimeout: "0",
-    authenticationURL: "http://provisioning.centurate.com/cisco.php",
+    authenticationURL: "",
     messagesURL: "",
     freepbxVoicemailMenu: "1",
     voicemailDialCode: "*97",
