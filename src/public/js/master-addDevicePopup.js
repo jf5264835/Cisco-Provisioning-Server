@@ -304,6 +304,7 @@ function renderPhoneSettings() {
             }
             control.id = setting.id;
             control.value = setting.defaultValue || "";
+            control.addEventListener('change', () => { control.dataset.explicit = 'true'; });
 
             const xmlName = document.createElement("span");
             xmlName.className = "xmlName";
@@ -322,6 +323,15 @@ function collectPhoneSettings() {
     phoneSettingIds.forEach((id) => {
         const control = document.getElementById(id);
         settings[id] = control.dataset.templateValue !== undefined && control.value === '__template__' ? control.dataset.templateValue : control.value;
+    });
+    return settings;
+}
+
+function collectExplicitTemplateSettings() {
+    const settings = {};
+    phoneSettingIds.forEach((id) => {
+        const control = document.getElementById(id);
+        if (control.dataset.explicit === 'true' && control.value !== '') settings[id] = control.value;
     });
     return settings;
 }
@@ -442,6 +452,20 @@ function doSubmit(after) {
     const xmlOverrideEnabled = document.getElementById("xmlOverrideEnabled").checked;
     const xmlOverride = document.getElementById("xmlOverride").value;
     const phoneSettings = collectPhoneSettings();
+
+    if (pState === 'template' || pState === 'template-duplicate') {
+        saveTemplateFromEditor();
+        return;
+    }
+
+    if (!/^[0-9A-F]{12}$/.test(deviceMAC)) {
+        alertHandle("MAC address must be exactly 12 hexadecimal characters without colons or separators.");
+        return;
+    }
+    if (!isValidIpAddress(deviceIP) || !isValidIpAddress(pbxServerIP)) {
+        alertHandle("Device IP and PBX server IP must be valid IP addresses.");
+        return;
+    }
 
     /**
      * Retrieve Line Key Values
@@ -736,6 +760,13 @@ function doSubmit(after) {
     };
 }
 
+function isValidIpAddress(value) {
+    if (!value) return false;
+    const ipv4 = value.split('.');
+    if (ipv4.length === 4 && ipv4.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)) return true;
+    return /^[0-9a-f:]+$/i.test(value) && value.includes(':');
+}
+
 function setXmlOverrideStatus(message, isError = false) {
     const status = document.getElementById('xmlOverrideStatus');
     status.innerText = message || "";
@@ -777,6 +808,49 @@ function validateXmlOverride() {
 }
 
 let pState = null;
+let editingTemplateUuid = null;
+async function initializeTemplateEditor(isDuplicate) {
+    hideAllFieldsets();
+    document.getElementById('fieldset-status').style.display = 'none';
+    document.getElementById('lineKeyFieldset').style.display = 'none';
+    document.getElementById('templateInfoFieldset').style.display = 'block';
+    document.getElementById('phoneSettingsFieldset').style.display = 'block';
+    document.querySelector('label[for="deviceTemplate"]').style.display = 'none';
+    document.getElementById('deviceTemplate').style.display = 'none';
+    document.querySelector('#phoneSettingsFieldset > p.tip').style.display = 'none';
+    phoneSettingDefinitions.filter((setting) => setting.options).forEach((setting) => {
+        const control = document.getElementById(setting.id);
+        control.add(new Option('Not set (omit from template)', ''), 0);
+        control.value = '';
+    });
+    document.getElementById('actionFieldset').style.display = 'block';
+    const actionButtons = document.querySelectorAll('#actionFieldset button');
+    actionButtons[0].innerHTML = '<i class="icmn-floppy-disk"></i> Save Template';
+    if (actionButtons[1]) actionButtons[1].style.display = 'none';
+    document.getElementById('cbRP').style.display = 'none';
+    const templateUuid = new URLSearchParams(window.location.search).get('data');
+    if (!templateUuid) return;
+    const response = await fetch('/api/templates');
+    const templates = await response.json();
+    const template = templates.find((item) => item.uuid === templateUuid);
+    if (!template) return alertHandle('Template not found.');
+    editingTemplateUuid = isDuplicate ? null : template.uuid;
+    document.getElementById('templateEditorName').value = isDuplicate ? `${template.name} (Copy)` : template.name;
+    document.getElementById('templateEditorDescription').value = template.description || '';
+    Object.entries(template.phoneSettings || {}).forEach(([id, value]) => {
+        const control = document.getElementById(id);
+        if (control) { control.value = value; control.dataset.explicit = 'true'; }
+    });
+}
+
+async function saveTemplateFromEditor() {
+    const name = document.getElementById('templateEditorName').value.trim();
+    if (!name) return alertHandle('Template name is required.');
+    const response = await fetch('/api/templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uuid: editingTemplateUuid || undefined, name, description: document.getElementById('templateEditorDescription').value, phoneSettings: collectExplicitTemplateSettings() }) });
+    const payload = await response.json();
+    if (!response.ok) return alertHandle(payload.message || 'Unable to save template.');
+    window.location = '/dashboard/templates';
+}
 
 function showAllFieldsets() {
     document.getElementById('lineKeyFieldset').style.opacity = "100";
@@ -808,7 +882,13 @@ function readPageQueryState() {
     let additionStatus = urlParams.get('astat'); //Whether to add or modify a device
     pState = additionStatus;
 
-    if (additionStatus == "mod") {
+    if (additionStatus === 'template' || additionStatus === 'template-duplicate') {
+        initializeTemplateEditor(additionStatus === 'template-duplicate');
+        return;
+    }
+
+    if (additionStatus == "mod" || additionStatus == "duplicate") {
+        const isDuplicate = additionStatus === "duplicate";
         const deviceUUID = urlParams.get('data'); //Get the device UUID
 
         //Create XMLHTTPRequest to get device data
@@ -832,8 +912,9 @@ function readPageQueryState() {
                 if (response.code != 0) {
                     console.error("Error code returned from server.");
                     document.getElementById('dstatus-error').style.display = "block";
-                    document.getElementById('dstatus-error').innerHTML = document.getElementById('dstatus-error').innerHTML.replace("<!--CONTEXT-->", `Could not load device due to Server Parser Error (2)`);
+                    document.getElementById('dstatus-error').innerHTML = document.getElementById('dstatus-error').innerHTML.replace("<!--CONTEXT-->", response.message || `Could not load device due to Server Parser Error (2)`);
                     document.getElementById('dstatus-wait').style.display = "none";
+                    return;
                 }
                 lastLoadedRawProvision = response.rawProvision || "";
                 console.log(response);
@@ -849,6 +930,14 @@ function readPageQueryState() {
                         : reimportDeviceOverrideOnly(response.config);
 
                     if(didLoad) {
+                        if (isDuplicate) {
+                            document.getElementById('deviceUUID').value = generateUUID();
+                            document.getElementById('deviceMAC').value = '';
+                            document.getElementById('deviceIP').value = '';
+                            document.getElementById('deviceName').value += ' (Copy)';
+                            pState = 'duplicate';
+                        }
+                        document.getElementById('deviceUUID').disabled = true;
                         showAllFieldsets();
                         document.getElementById('dstatus-wait').style.display = "none";
                         console.log(`[${new Date().toISOString()}] Loaded existing configuration`);
@@ -867,6 +956,9 @@ function readPageQueryState() {
         });
 
         document.getElementById('dstatus-fresh').style.display = "block";
+        document.getElementById('deviceUUID').value = generateUUID();
+        document.getElementById('deviceUUID').disabled = true;
+        document.getElementById('deviceUUIDautoGen').checked = true;
         showAllFieldsets();
     }
 

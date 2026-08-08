@@ -25,6 +25,10 @@
 </head>
 
 <body>
+    <fieldset id="templateInfoFieldset" style="display:none">
+        <legend>Template Information</legend>
+        <div class="form"><label for="templateEditorName">Template Name</label><input id="templateEditorName" type="text" maxlength="100"><label for="templateEditorDescription">Description</label><input id="templateEditorDescription" type="text" maxlength="250"></div>
+    </fieldset>
     <nav>
         <table>
             <tr>
@@ -111,11 +115,11 @@
                 <span class="hint--bottom" 
                 data-hint="Format: UUIDV4. Unique."><i class="icmn-info"></i></span>&nbsp;
             </label>
-            <input autocomplete="off" type="text" id="deviceUUID"
+            <input autocomplete="off" type="text" id="deviceUUID" disabled
                 placeholder="Enter or Generate a Unique Device UUID" />
 
             <label id="deviceUUIDInput" for="deviceUUID_auto">Auto-Generate UUID</label>
-            <input id="deviceUUIDautoGen" type="checkbox" onclick="handleUUIDGenCBState(this);" />
+            <input id="deviceUUIDautoGen" type="checkbox" disabled />
 
             <label for="deviceName">Device Name</label>
             <input type="text" id="deviceName" placeholder="Name to identify device in CPM" />
@@ -130,10 +134,10 @@
                 <span class="hint--bottom" 
                 data-hint="Omit hyphens, colons, or other seperators."><i class="icmn-info"></i></span>&nbsp;
             </label>
-            <input type="text" id="deviceMAC" placeholder="00AA22CC44DD" oninput="let p=this.selectionStart;this.value=this.value.toUpperCase();this.setSelectionRange(p, p);" />
+            <input type="text" id="deviceMAC" placeholder="00AA22CC44DD" maxlength="12" pattern="[0-9A-Fa-f]{12}" title="12 hexadecimal characters without colons or separators" oninput="let p=this.selectionStart;this.value=this.value.toUpperCase().replace(/[^0-9A-F]/g, '');this.setSelectionRange(p, p);" />
 
             <label for="pbxServerIP"><b>Asterisk/PBX Server IP</b></label>
-            <input type="text" id="pbxServerIP" placeholder="10.2.1.1" />
+            <input type="text" id="pbxServerIP" inputmode="decimal" placeholder="10.2.1.1" />
 
 
 
@@ -458,7 +462,7 @@
             </select>
 
             <label for="deviceIP">Device IP <i title="An IP is required to remotely reprovision this device and/or manage it from CPM. This does not affect manual provisioning. For IP restrictions, see the 'Security' section." class="icmn-info"></i></label>
-            <input type="text" id="deviceIP" placeholder="Enter Device IP for Remote Mobility" value="" />
+                <input type="text" id="deviceIP" inputmode="decimal" placeholder="Enter Device IP for Remote Mobility" value="" />
 
         </div>
 

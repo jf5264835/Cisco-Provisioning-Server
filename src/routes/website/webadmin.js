@@ -1,4 +1,6 @@
 module.exports = function(app) {
+    const fs = require('fs');
+    const path = require('path');
     const renderData = (req, extra = {}) => ({ username: req.session.a_username, name: req.session.a_name || req.session.a_username, permissions: req.session.a_permissions, ...extra });
     app.get('/dashboard', (req, res) => {
         if (!req.session.loggedIn) {
@@ -37,7 +39,7 @@ module.exports = function(app) {
             lastLogin: req.session.a_lastLogin,
             peEnabled: req.session.a_peEnabled,
             permissions: req.session.a_permissions,
-            devices: cache.devices
+            devices: cache.devices.map((device) => ({ ...device, configurationHealthy: fs.existsSync(path.join(__dirname, '../../data/config', device.provisioningFile || `SEP${device.mac}.cnf.xml`)) }))
         });
     });
 

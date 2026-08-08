@@ -27,6 +27,13 @@ test('device selection exposes stable UUID values', () => {
     assert.doesNotMatch(view, /return '<input type="checkbox" class="checkbox">'/);
 });
 
+test('device actions remain inside authenticated management routes', () => {
+    const view = fs.readFileSync('src/views/devices.ejs', 'utf8');
+    assert.match(view, /astat=duplicate&data=/);
+    assert.doesNotMatch(view, /title="Duplicate Device" href="\/"/);
+    assert.match(view, /Config Missing/);
+});
+
 test('critical provisioning defaults and global XML resources are present', () => {
     const template = fs.readFileSync('src/routes/api/template.xml', 'utf8');
     assert.match(template, /<member priority="0">/);

@@ -19,6 +19,7 @@ const { parseString, Parser } = require('xml2js'); // Built-in module for XML pa
 const { response } = require('express');
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 
 const defaultPhoneSettings = {
     cnfJoinEnabled: "true",
@@ -298,6 +299,11 @@ module.exports = function(app) {
             return;
         }
         json.cpa = normalizeCommonProvisioningAttributes(json.cpa);
+        json.meta.deviceMAC = String(json.meta.deviceMAC || '').toUpperCase();
+        if (!/^[0-9A-F]{12}$/.test(json.meta.deviceMAC)) return res.status(400).json({ code: 1, message: "MAC address must be exactly 12 hexadecimal characters without colons or separators." });
+        if (!net.isIP(String(json.cust.deviceIP || ''))) return res.status(400).json({ code: 1, message: "Device IP must be a valid IPv4 or IPv6 address." });
+        if (!net.isIP(String(json.meta.pbxServerIP || ''))) return res.status(400).json({ code: 1, message: "PBX server IP must be a valid IPv4 or IPv6 address." });
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(json.meta.deviceUUID || ''))) return res.status(400).json({ code: 1, message: "Device UUID must be a valid UUIDv4." });
 
         const serverData = require('../../server/jdata');
         let cache = serverData.get(); //Require a new copy (just in case)
@@ -339,12 +345,7 @@ module.exports = function(app) {
         } else {
 
             //MAC Duplicate Check (fixes Bug in Commit #84)
-            cache.devices.forEach(device => {
-                if (device.mac === json.meta.deviceMAC) {
-                    res.send({code: 1, message: "MAC Address already exists in the system."});
-                    return;
-                }
-            });
+            if (cache.devices.some((device) => device.mac === json.meta.deviceMAC)) return res.status(409).send({code: 1, message: "MAC Address already exists in the system."});
 
 
             //Create a new device in "devices" of cache
