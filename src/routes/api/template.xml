@@ -25,10 +25,10 @@
             <members>
                 <member priority="0">
                     <callManager>
-                        <processNodeName><!--pbxServerIP--></processNodeName>
                         <ports>
                             <sipPort><!--sipPort--></sipPort>
                         </ports>
+                        <processNodeName><!--pbxServerIP--></processNodeName>
                    </callManager>
                 </member>
             </members>

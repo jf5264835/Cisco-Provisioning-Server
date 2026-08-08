@@ -87,3 +87,19 @@ test('container publication workflow and deployment files exist', () => {
         assert.equal(fs.existsSync(file), true, `${file} should exist`);
     }
 });
+
+test('call manager XML orders ports before processNodeName and omits invalid CAPF default', () => {
+    const template = fs.readFileSync('src/routes/api/template.xml', 'utf8');
+    const callManager = template.slice(template.indexOf('<callManager>'), template.indexOf('</callManager>'));
+    assert.ok(callManager.indexOf('<ports>') < callManager.indexOf('<processNodeName>'));
+    assert.doesNotMatch(fs.readFileSync('src/routes/api/dmod.js', 'utf8'), /capfAuthMode:\s*["']0["']/);
+});
+
+test('configuration validation removes blanks and restricts CAPF modes', () => {
+    const { replaceOptionalXmlPlaceholders, validatePhoneSettings } = require('../src/routes/api/configValidation');
+    const defaults = { capfAuthMode: '', timerT1: '500', encrConfig: 'false' };
+    assert.deepEqual(validatePhoneSettings({ capfAuthMode: '2', timerT1: '600', unused: '' }, defaults).value, { capfAuthMode: '2', timerT1: '600' });
+    assert.match(validatePhoneSettings({ capfAuthMode: '0' }, defaults).error, /1, 2, or 3/);
+    assert.match(validatePhoneSettings({ timerT1: 'fast' }, defaults).error, /integer/);
+    assert.equal(replaceOptionalXmlPlaceholders('<device>\n  <capfAuthMode><!--capfAuthMode--></capfAuthMode>\n</device>', { capfAuthMode: '' }), '<device>\n</device>');
+});
