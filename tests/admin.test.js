@@ -40,6 +40,14 @@ test('device IP is optional but validated when supplied', () => {
     assert.match(route, /PBX server IP must be a valid IPv4 or IPv6 address/);
 });
 
+test('device edits atomically replace the provisioning file used on refresh', () => {
+    const route = fs.readFileSync('src/routes/api/dmod.js', 'utf8');
+    assert.match(route, /provisioningFile = `SEP\$\{json\.meta\.deviceMAC\}\.cnf\.xml`/);
+    assert.match(route, /saveProvisioningFile\(provisioningFile, xml\);\s*serverData\.save\(cache\);/);
+    assert.match(route, /fs\.writeFileSync\(temporaryFile, contents, 'utf8'\);\s*fs\.renameSync\(temporaryFile, destination\);/);
+    assert.doesNotMatch(route, /fs\.writeFile\(path\.join\(__dirname, `\.\.\/\.\.\/data\/config\/SEP/);
+});
+
 test('critical provisioning defaults and global XML resources are present', () => {
     const template = fs.readFileSync('src/routes/api/template.xml', 'utf8');
     assert.match(template, /<member priority="0">/);
