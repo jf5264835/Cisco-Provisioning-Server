@@ -124,6 +124,60 @@
                         <div id="ringtoneStatus" class="resourceStatus"></div>
                         <div id="ringtoneGrid" class="resourceGrid"></div>
                     </section>
+
+                    <section class="resourceSection">
+                        <div class="sectionHeader"><div><h2>Global Dialing Resources</h2><p>Build the global DialTemplate.xml digit patterns or edit AppDialRules.xml directly. Both files are XML-validated before an atomic save.</p></div><div class="sectionLinks"><a href="/DialTemplate.xml" target="_blank">Open DialTemplate.xml</a><a href="/AppDialRules.xml" target="_blank">Open AppDialRules.xml</a></div></div>
+                        <h3>Dial template rules</h3>
+                        <div id="dialRuleRows" class="dialRuleRows"></div>
+                        <button type="button" id="addDialRule"><i class="icmn-plus3"></i> Add rule</button>
+                        <button type="button" id="saveDialTemplate"><i class="icmn-floppy-disk"></i> Save DialTemplate.xml</button>
+                        <div id="dialTemplateStatus" class="resourceStatus" role="status"></div>
+                        <h3>AppDialRules.xml</h3>
+                        <textarea id="appDialRulesXml" class="xmlEditor" spellcheck="false" aria-label="AppDialRules XML"></textarea>
+                        <button type="button" id="saveAppDialRules"><i class="icmn-floppy-disk"></i> Validate &amp; Save AppDialRules.xml</button>
+                        <div id="appDialRulesStatus" class="resourceStatus" role="status"></div>
+                    </section>
+                </div>
+
+                <div class="tabBody" id="dialPlan" data-resource-panel hidden>
+                    <section class="resourceSection">
+                        <div class="sectionHeader"><div><h2>Global Dial Plan</h2><p>Each rule maps a Cisco digit pattern to a timeout and optional rewrite or line. Rules are evaluated by the phone in file order.</p></div><div class="sectionLinks"><a href="https://usecallmanager.nz/dial-template.html" target="_blank" rel="noopener">Cisco pattern guide</a><a href="/DialTemplate.xml" target="_blank">Open XML</a></div></div>
+                        <div class="dialHelp"><strong>Pattern symbols:</strong> digits match themselves; <code>.</code> matches one digit, <code>*</code> matches zero or more digits, <code>\*</code> matches a literal star, and <code>,</code> plays a secondary dial tone. A lower timeout places the call sooner.</div>
+                        <div class="versionStampRow"><label for="dialVersionStamp">Version stamp</label><input id="dialVersionStamp" type="text" aria-describedby="versionStampHelp"><button type="button" id="generateVersionStamp">Generate UUID</button><small id="versionStampHelp">Change this when publishing a new plan so phones can identify the revision.</small></div>
+                        <h3>Dial rules</h3>
+                        <div class="dialRuleHeadings" aria-hidden="true"><span>Common rule</span><span>Match pattern</span><span>Timeout</span><span>Rewrite</span><span>Line</span><span></span></div>
+                        <div id="dialRuleRows" class="dialRuleRows"></div>
+                        <button type="button" id="addDialRule"><i class="icmn-plus3"></i> Add rule</button>
+                        <button type="button" id="saveDialTemplate"><i class="icmn-floppy-disk"></i> Save DialTemplate.xml</button>
+                        <div id="dialTemplateStatus" class="resourceStatus" role="status"></div>
+                        <details class="advancedDialRules"><summary>Advanced: AppDialRules.xml editor</summary><p>Use this only for models that consume application dial rules. The XML root and well-formedness are validated before saving.</p>
+                        <textarea id="appDialRulesXml" class="xmlEditor" spellcheck="false" aria-label="AppDialRules XML"></textarea>
+                        <button type="button" id="saveAppDialRules"><i class="icmn-floppy-disk"></i> Validate &amp; Save AppDialRules.xml</button>
+                        <div id="appDialRulesStatus" class="resourceStatus" role="status"></div>
+                        </details>
+                    </section>
+                </div>
+
+                <div class="tabBody" id="dialTemplate" data-resource-panel hidden>
+                    <section class="resourceSection">
+                        <div class="sectionHeader"><div><h2>Global Dial Plan</h2><p>Each rule maps a Cisco digit pattern to a timeout and optional rewrite or line. Rules are evaluated by the phone in file order.</p></div><div class="sectionLinks"><a href="https://usecallmanager.nz/dial-template.html" target="_blank" rel="noopener">Cisco pattern guide</a><a href="/DialTemplate.xml" target="_blank">Open XML</a></div></div>
+                        <div class="dialHelp"><strong>Pattern symbols:</strong> digits match themselves; <code>.</code> matches one digit, <code>*</code> matches zero or more digits, <code>\*</code> matches a literal star, and <code>,</code> plays a secondary dial tone. A lower timeout places the call sooner.</div>
+                        <div class="versionStampRow"><label for="dialVersionStamp">Version stamp</label><input id="dialVersionStamp" type="text" aria-describedby="versionStampHelp"><button type="button" id="generateVersionStamp">Generate UUID</button><small id="versionStampHelp">Change this when publishing a new plan so phones can identify the revision.</small></div>
+                        <h3>Dial rules</h3>
+                        <div class="dialRuleHeadings" aria-hidden="true"><span>Common rule</span><span>Match pattern</span><span>Timeout</span><span>Rewrite</span><span>Line</span><span></span></div>
+                        <div id="dialRuleRows" class="dialRuleRows"></div>
+                        <button type="button" id="addDialRule"><i class="icmn-plus3"></i> Add rule</button>
+                        <button type="button" id="saveDialTemplate"><i class="icmn-floppy-disk"></i> Save DialTemplate.xml</button>
+                        <div id="dialTemplateStatus" class="resourceStatus" role="status"></div>
+                    </section>
+                </div>
+                <div class="tabBody" id="appDialRules" data-resource-panel hidden>
+                    <section class="resourceSection">
+                        <div class="sectionHeader"><div><h2>App Dial Rules</h2><p>Raw AppDialRules.xml editor for phone models that consume application dial rules.</p></div><a href="/AppDialRules.xml" target="_blank">Open XML</a></div>
+                        <textarea id="appDialRulesXml" class="xmlEditor" spellcheck="false" aria-label="AppDialRules XML"></textarea>
+                        <button type="button" id="saveAppDialRules"><i class="icmn-floppy-disk"></i> Validate &amp; Save AppDialRules.xml</button>
+                        <div id="appDialRulesStatus" class="resourceStatus" role="status"></div>
+                    </section>
                 </div>
 
                 <div class="tabBody" id="dialTemplate" data-resource-panel hidden>
