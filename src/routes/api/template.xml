@@ -23,7 +23,7 @@
         </dateTimeSetting>
         <callManagerGroup>
             <members>
-                <member>
+                <member priority="0">
                     <callManager>
                         <processNodeName><!--pbxServerIP--></processNodeName>
                         <ports>
