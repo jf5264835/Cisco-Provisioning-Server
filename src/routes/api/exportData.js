@@ -73,7 +73,7 @@ module.exports = function(app) {
 
         fs.readFile(provisioningFilePath, function(err, data) {
             if (err) {
-                res.status(500).send({ code: 2, message: "Error reading provisioning file." });
+                res.status(409).send({ code: 2, message: "The device record exists, but its provisioning XML is missing. Recreate or restore the configuration before editing this device.", config: device, configurationHealthy: false });
                 return;
             }
 

@@ -1,4 +1,7 @@
 module.exports = function(app) {
+    const fs = require('fs');
+    const path = require('path');
+    const renderData = (req, extra = {}) => ({ username: req.session.a_username, name: req.session.a_name || req.session.a_username, permissions: req.session.a_permissions, ...extra });
     app.get('/dashboard', (req, res) => {
         if (!req.session.loggedIn) {
             res.redirect('/login');
@@ -36,7 +39,7 @@ module.exports = function(app) {
             lastLogin: req.session.a_lastLogin,
             peEnabled: req.session.a_peEnabled,
             permissions: req.session.a_permissions,
-            devices: cache.devices
+            devices: cache.devices.map((device) => ({ ...device, configurationHealthy: fs.existsSync(path.join(__dirname, '../../data/config', device.provisioningFile || `SEP${device.mac}.cnf.xml`)) }))
         });
     });
 
@@ -55,6 +58,24 @@ module.exports = function(app) {
             permissions: req.session.a_permissions,
         });
 
+    });
+
+    app.get('/dashboard/settings', (req, res) => {
+        if (!req.session.loggedIn) return res.redirect('/login');
+        res.render('settings', renderData(req));
+    });
+
+    app.get('/dashboard/users', (req, res) => {
+        if (!req.session.loggedIn) return res.redirect('/login');
+        if (req.session.a_permissions !== '*') return res.status(403).send('Administrator permission is required.');
+        const accounts = require('../../server/jdata').get().accounts.map(({ password, ...account }) => account);
+        res.render('users', renderData(req, { accounts }));
+    });
+
+    app.get('/dashboard/templates', (req, res) => {
+        if (!req.session.loggedIn) return res.redirect('/login');
+        const templates = require('../../server/jdata').get().templates || [];
+        res.render('templates', renderData(req, { templates }));
     });
 
     app.get('/dashboard/action', (req, res) => {
@@ -81,4 +102,3 @@ module.exports = function(app) {
         res.render('rmtProvision');
     });
 }
-

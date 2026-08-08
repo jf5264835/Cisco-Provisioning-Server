@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dialTemplate>
+  <versionStamp>1d2e73b2-2001-4d7d-8845-000000000001</versionStamp>
+  <TEMPLATE match="911" timeout="0"/>
+  <TEMPLATE match="933" timeout="0"/>
+  <TEMPLATE match="\*97" timeout="0"/>
+  <TEMPLATE match="\*98" timeout="0"/>
+  <TEMPLATE match="..." timeout="1"/>
+  <TEMPLATE match="...." timeout="1"/>
+  <TEMPLATE match="......." timeout="1"/>
+  <TEMPLATE match=".........." timeout="1"/>
+  <TEMPLATE match="1.........." timeout="1"/>
+  <TEMPLATE match="*" timeout="3"/>
+</dialTemplate>
