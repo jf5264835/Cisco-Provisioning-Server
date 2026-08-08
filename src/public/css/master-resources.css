@@ -197,6 +197,10 @@ footer {
 .resourceSection {
   margin-top: 1.5rem;
 }
+.resourceSection h3 {
+  color: white;
+  font-weight: normal;
+}
 
 .sectionHeader {
   display: flex;
@@ -334,6 +338,41 @@ footer {
   font-size: 2.6rem;
 }
 
+.dialRuleRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr 1fr auto;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.dialRuleRow label {
+  color: gainsboro;
+}
+.dialRuleRow input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  background: rgb(41, 40, 40);
+  color: white;
+  border: 1px solid #5d879f;
+  border-radius: 5px;
+  padding: 0.4rem;
+}
+
+.xmlEditor {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 220px;
+  margin: 0.5rem 0;
+  background: rgb(41, 40, 40);
+  color: white;
+  border: 1px solid #5d879f;
+  border-radius: 5px;
+  padding: 0.75rem;
+  font-family: monospace;
+}
+
 @media (max-width: 900px) {
   .sectionHeader {
     flex-direction: column;
@@ -350,6 +389,9 @@ footer {
     display: block;
     color: gainsboro;
     margin-top: 0.4rem;
+  }
+  .dialRuleRow {
+    grid-template-columns: 1fr;
   }
 }
 

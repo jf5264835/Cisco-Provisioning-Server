@@ -22,9 +22,9 @@
 <body>
     <!--Navigation Elements-->
     <nav>
-        <span><%= username %>&ensp;<i class="icmn-user3"></i></span>
+        <span onclick="window.location='/dashboard/settings'"><%= typeof name !== 'undefined' ? name : username %>&ensp;<i class="icmn-user3"></i></span>
 
-        <span>Settings&ensp;<i class="icmn-cog"></i></span>
+        <span onclick="window.location='/dashboard/settings'">Settings&ensp;<i class="icmn-cog"></i></span>
 
         <span onclick="window.location = ('/logout');">Logout&ensp;<i class="icmn-exit3"></i></span>
 
@@ -70,8 +70,8 @@
                 </thead>
                 <tbody>
                     <% for (let i = 0; i < devices.length; i++) { %>
-                        <tr>
-                            <td><!--Checkbox --></td>
+                        <tr data-device-uuid="<%= devices[i].uuid %>">
+                            <td><input type="checkbox" class="device-selection" value="<%= devices[i].uuid %>" aria-label="Select <%= devices[i].name || devices[i].uuid %>"></td>
                             <td><%= devices[i].name || 'N/A' %></td>
                             <td><%= devices[i].ip || 'N/A' %></td>
                             <td><%= devices[i].mac || 'N/A' %></td>
@@ -136,12 +136,9 @@
         $('#deviceDisplay').DataTable({
             "order": [[0, "asc"]],
             "columnDefs": [{
-                "targets": 0, // The CHKBOX column
+                "targets": 0,
                 "searchable": false,
-                "orderable": false,
-                "render": function (data, type, full, meta) {
-                    return '<input type="checkbox" class="checkbox">';
-                }
+                "orderable": false
             }]
         });
 

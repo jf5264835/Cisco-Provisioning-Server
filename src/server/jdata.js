@@ -24,11 +24,9 @@ function getLatestAndUpdateCache() {
 function save(jsonObject) {
     cache = jsonObject;
     const jsonData = JSON.stringify(jsonObject, null, 4);
-    fs.writeFile(dataFile, jsonData, 'utf-8', function(err) {
-        if (err) {
-            console.log("Error writing to file: " + err);
-        }
-    });
+    const temporaryFile = `${dataFile}.${process.pid}.tmp`;
+    fs.writeFileSync(temporaryFile, jsonData, 'utf-8');
+    fs.renameSync(temporaryFile, dataFile);
 }
 
 function forcePurge() {

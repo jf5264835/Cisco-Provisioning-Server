@@ -385,7 +385,7 @@
                 data-hint="Recommended: Unicast"><i class="icmn-info"></i></span>&nbsp;
             </label>
             <select id="ntpMode" autocomplete="off">
-                <option value="Unicast">Unicast</option>
+                <option value="unicast">unicast</option>
                 <option value="directedbroadcast">directedbroadcast</option>
             </select>
 
@@ -424,6 +424,9 @@
 
     <fieldset id="phoneSettingsFieldset">
         <legend>Phone Settings</legend>
+        <label for="deviceTemplate">Device template</label>
+        <select id="deviceTemplate"><option value="">No template</option></select>
+        <p class="tip">Template values appear as hints or as “(Template)” options. Editing a value creates a device-specific override.</p>
         <span><i class="icmn-info"></i> Friendly controls for Cisco Enterprise XML settings. Use Advanced XML for fields not listed here.</span>
         <div id="phoneSettingsSections" class="settingsSections"></div>
     </fieldset>
@@ -514,7 +517,7 @@
         <legend>Configuration Actions</legend>
 
         <button onclick="doSubmit(0);" class="cfa-s"><i class="icmn-floppy-disk"></i> Save Configuration</button>
-        <button class="cfa-s"><i class="icmn-cloud-check"></i> Save & Reprovision</button>
+        <button type="button" onclick="doSubmit(1);" class="cfa-s"><i class="icmn-cloud-check"></i> Save & Reprovision</button>
         <div id="cbRP">
             <label for="cb_remainOnPage">Remain on this page after configuration update: </label>
             <input type="checkbox" id="cb_remainOnPage" />

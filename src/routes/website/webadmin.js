@@ -1,4 +1,5 @@
 module.exports = function(app) {
+    const renderData = (req, extra = {}) => ({ username: req.session.a_username, name: req.session.a_name || req.session.a_username, permissions: req.session.a_permissions, ...extra });
     app.get('/dashboard', (req, res) => {
         if (!req.session.loggedIn) {
             res.redirect('/login');
@@ -57,6 +58,24 @@ module.exports = function(app) {
 
     });
 
+    app.get('/dashboard/settings', (req, res) => {
+        if (!req.session.loggedIn) return res.redirect('/login');
+        res.render('settings', renderData(req));
+    });
+
+    app.get('/dashboard/users', (req, res) => {
+        if (!req.session.loggedIn) return res.redirect('/login');
+        if (req.session.a_permissions !== '*') return res.status(403).send('Administrator permission is required.');
+        const accounts = require('../../server/jdata').get().accounts.map(({ password, ...account }) => account);
+        res.render('users', renderData(req, { accounts }));
+    });
+
+    app.get('/dashboard/templates', (req, res) => {
+        if (!req.session.loggedIn) return res.redirect('/login');
+        const templates = require('../../server/jdata').get().templates || [];
+        res.render('templates', renderData(req, { templates }));
+    });
+
     app.get('/dashboard/action', (req, res) => {
         if (!req.session.loggedIn) {
             res.status(403).send('<!DOCTYPE html><style>* {font-family: sans-serif;}</style><h1>403 Forbidden</h1><p>You do not have permission to access this page.<br>Please log in with an authorized account to continue your action.</p><hr>');
@@ -81,4 +100,3 @@ module.exports = function(app) {
         res.render('rmtProvision');
     });
 }
-
