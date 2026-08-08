@@ -70,7 +70,7 @@ const defaultPhoneSettings = {
     externalNumberMask: "",
     dscpForAudio: "184",
     ringSettingBusyStationPolicy: "0",
-    dialTemplate: "",
+    dialTemplate: "DialTemplate.xml",
     softKeyFile: "",
     MissedCallLoggingOption: "1",
     featurePolicyFile: "",
@@ -217,6 +217,17 @@ function normalizePhoneSettings(settings = {}) {
     return { ...defaultPhoneSettings, ...populatedSettings };
 }
 
+function normalizeCommonProvisioningAttributes(attributes = {}) {
+    const defaults = {
+        dateTemplate: "D/M/Y",
+        ntpName: "0.pool.ntp.org",
+        ntpMode: "unicast",
+        sipPort: "5060",
+        voipControlPort: "5060"
+    };
+    return Object.fromEntries(Object.entries({ ...defaults, ...attributes }).map(([key, value]) => [key, value === undefined || value === null || value === "" ? defaults[key] || "" : value]));
+}
+
 function getPublicBaseUrl(req) {
     return (process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, "");
 }
@@ -286,6 +297,7 @@ module.exports = function(app) {
             res.json({code: 1, message: "Invalid JSON"});
             return;
         }
+        json.cpa = normalizeCommonProvisioningAttributes(json.cpa);
 
         const serverData = require('../../server/jdata');
         let cache = serverData.get(); //Require a new copy (just in case)

@@ -123,6 +123,19 @@
                         <div id="ringtoneStatus" class="resourceStatus"></div>
                         <div id="ringtoneGrid" class="resourceGrid"></div>
                     </section>
+
+                    <section class="resourceSection">
+                        <div class="sectionHeader"><div><h2>Global Dialing Resources</h2><p>Build the global DialTemplate.xml digit patterns or edit AppDialRules.xml directly. Both files are XML-validated before an atomic save.</p></div><div class="sectionLinks"><a href="/DialTemplate.xml" target="_blank">Open DialTemplate.xml</a><a href="/AppDialRules.xml" target="_blank">Open AppDialRules.xml</a></div></div>
+                        <h3>Dial template rules</h3>
+                        <div id="dialRuleRows" class="dialRuleRows"></div>
+                        <button type="button" id="addDialRule"><i class="icmn-plus3"></i> Add rule</button>
+                        <button type="button" id="saveDialTemplate"><i class="icmn-floppy-disk"></i> Save DialTemplate.xml</button>
+                        <div id="dialTemplateStatus" class="resourceStatus" role="status"></div>
+                        <h3>AppDialRules.xml</h3>
+                        <textarea id="appDialRulesXml" class="xmlEditor" spellcheck="false" aria-label="AppDialRules XML"></textarea>
+                        <button type="button" id="saveAppDialRules"><i class="icmn-floppy-disk"></i> Validate &amp; Save AppDialRules.xml</button>
+                        <div id="appDialRulesStatus" class="resourceStatus" role="status"></div>
+                    </section>
                 </div>
             </div>
 

@@ -95,7 +95,13 @@ module.exports = function (app) {
         if (!name || name.length > 100) return res.status(400).json({ code: 1, message: 'Name must be between 1 and 100 characters.' });
         account.name = name;
         if (req.body.password) {
+            const currentPassword = String(req.body.currentPassword || '');
+            const passwordMatches = account.peEnable === true || account.peEnabled === true
+                ? await bcrypt.compare(currentPassword, account.password)
+                : currentPassword === account.password;
+            if (!passwordMatches) return res.status(400).json({ code: 1, message: 'Current password is incorrect.' });
             if (String(req.body.password).length < 10) return res.status(400).json({ code: 1, message: 'Password must contain at least 10 characters.' });
+            if (req.body.password !== req.body.confirmPassword) return res.status(400).json({ code: 1, message: 'New passwords do not match.' });
             account.password = await bcrypt.hash(String(req.body.password), 12);
             account.peEnable = true;
         }

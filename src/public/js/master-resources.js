@@ -4,6 +4,7 @@ const wallpaperStatus = document.getElementById('wallpaperStatus');
 const ringtoneGrid = document.getElementById('ringtoneGrid');
 const ringtoneForm = document.getElementById('ringtoneForm');
 const ringtoneStatus = document.getElementById('ringtoneStatus');
+const dialRuleRows = document.getElementById('dialRuleRows');
 
 function setWallpaperStatus(message, isError = false) {
     wallpaperStatus.innerText = message || '';
@@ -215,3 +216,59 @@ ringtoneForm.addEventListener('submit', async (event) => {
 
 loadWallpapers();
 loadRingtones();
+
+function escapeXmlAttribute(value) {
+    return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function addDialRule(rule = {}) {
+    const row = document.createElement('div');
+    row.className = 'dialRuleRow';
+    row.innerHTML = '<label>Match<input class="dialMatch" placeholder="3.." required></label><label>Timeout<input class="dialTimeout" type="number" min="0" max="60" value="5"></label><label>Rewrite<input class="dialRewrite" placeholder="Optional"></label><label>Line<input class="dialLine" type="number" min="1" placeholder="All"></label><button type="button" class="removeDialRule"><i class="icmn-bin"></i> Remove</button>';
+    row.querySelector('.dialMatch').value = rule.match || '';
+    row.querySelector('.dialTimeout').value = rule.timeout ?? '5';
+    row.querySelector('.dialRewrite').value = rule.rewrite || '';
+    row.querySelector('.dialLine').value = rule.line || '';
+    row.querySelector('.removeDialRule').addEventListener('click', () => row.remove());
+    dialRuleRows.appendChild(row);
+}
+
+async function loadXmlResource(name) {
+    const response = await fetch(`/api/static-resources/${name}`);
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.message);
+    return payload.xml;
+}
+
+async function saveXmlResource(name, xml, statusElement) {
+    statusElement.textContent = 'Validating and saving...';
+    const response = await fetch(`/api/static-resources/${name}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ xml }) });
+    const payload = await response.json();
+    statusElement.textContent = payload.message;
+    statusElement.classList.toggle('error', !response.ok);
+}
+
+async function initializeDialResources() {
+    try {
+        const dialXml = await loadXmlResource('DialTemplate');
+        const documentXml = new DOMParser().parseFromString(dialXml, 'application/xml');
+        documentXml.querySelectorAll('TEMPLATE').forEach((template) => addDialRule({ match: template.getAttribute('match'), timeout: template.getAttribute('timeout'), rewrite: template.getAttribute('rewrite'), line: template.getAttribute('line') }));
+        if (!dialRuleRows.children.length) addDialRule();
+        document.getElementById('appDialRulesXml').value = await loadXmlResource('AppDialRules');
+    } catch (error) {
+        document.getElementById('dialTemplateStatus').textContent = error.message;
+    }
+}
+
+document.getElementById('addDialRule').addEventListener('click', () => addDialRule());
+document.getElementById('saveDialTemplate').addEventListener('click', () => {
+    const rules = Array.from(dialRuleRows.children).map((row) => {
+        const attributes = [`match="${escapeXmlAttribute(row.querySelector('.dialMatch').value)}"`, `timeout="${escapeXmlAttribute(row.querySelector('.dialTimeout').value)}"`];
+        if (row.querySelector('.dialRewrite').value) attributes.push(`rewrite="${escapeXmlAttribute(row.querySelector('.dialRewrite').value)}"`);
+        if (row.querySelector('.dialLine').value) attributes.push(`line="${escapeXmlAttribute(row.querySelector('.dialLine').value)}"`);
+        return `  <TEMPLATE ${attributes.join(' ')}/>`;
+    });
+    saveXmlResource('DialTemplate', `<?xml version="1.0" encoding="UTF-8"?>\n<dialTemplate>\n${rules.join('\n')}\n</dialTemplate>\n`, document.getElementById('dialTemplateStatus'));
+});
+document.getElementById('saveAppDialRules').addEventListener('click', () => saveXmlResource('AppDialRules', document.getElementById('appDialRulesXml').value, document.getElementById('appDialRulesStatus')));
+initializeDialResources();

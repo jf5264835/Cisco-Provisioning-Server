@@ -136,12 +136,9 @@
         $('#deviceDisplay').DataTable({
             "order": [[0, "asc"]],
             "columnDefs": [{
-                "targets": 0, // The CHKBOX column
+                "targets": 0,
                 "searchable": false,
-                "orderable": false,
-                "render": function (data, type, full, meta) {
-                    return '<input type="checkbox" class="checkbox">';
-                }
+                "orderable": false
             }]
         });
 

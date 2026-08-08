@@ -58,6 +58,7 @@ module.exports = function (app) {
         if (!name) return res.status(400).json({ code: 1, message: 'Name is required.' });
         const existing = cache.accounts.find((item) => item.username === username);
         if (!existing && password.length < 10) return res.status(400).json({ code: 1, message: 'New users require a password of at least 10 characters.' });
+        if (password && password !== req.body.confirmPassword) return res.status(400).json({ code: 1, message: 'Passwords do not match.' });
         const account = existing || { username, createdAt: new Date().toISOString(), createdBy: req.session.a_username, lastLogin: null };
         account.name = name;
         account.enabled = req.body.enabled !== false;
