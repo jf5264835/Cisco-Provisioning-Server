@@ -17,7 +17,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: legop3/cisco-provisioning-server
+  IMAGE_NAME: jf5264835/cisco-provisioning-server
 
 jobs:
   build:
