@@ -1,10 +1,9 @@
 const bcrypt = require('bcrypt');
 const argon2 = require('argon2');
 require('express-session');
+const jdata = require('./jdata');
 
 module.exports = function (app) {
-    const cacheData = require('./jdata').get();
-
     app.post('/auth', (req, res) => {
         const username = req.body.username;
         const password = req.body.password;
@@ -16,7 +15,7 @@ module.exports = function (app) {
         }
 
         //Read Original Data (find accounts -> item with matching username, get password from it)
-        const data = cacheData;
+        const data = jdata.get();
         const account = data.accounts.find(account => account.username === username);
 
         //Check if account exists
@@ -32,7 +31,7 @@ module.exports = function (app) {
         }
 
         //Check if Password Encryption is enabled.
-        if (account.peEnabled) {
+        if (account.peEnable === true || account.peEnabled === true) {
             const setPasswordHash = account.password;
 
             //Compare Here
@@ -52,16 +51,7 @@ module.exports = function (app) {
                 //Passwords Match   
                 //TODO: Do session stuff
 
-                req.session.a_username = username;
-                req.session.a_createdAt = account.createdAt;
-                req.session.a_createdBy = account.createdBy;
-                req.session.a_lastLogin = account.lastLogin;
-                req.session.a_peEnabled = account.peEnabled;
-                req.session.a_permissions = account.permissions;
-                req.session.loggedIn = true;
-
-                
-
+                establishSession(req, account);
                 res.status(200).json({ code: 0, sessionToken: "kys", peStatus: true });
             });
         } else {
@@ -70,13 +60,7 @@ module.exports = function (app) {
                 //Passwords Match
                 //TODO: Do session stuff
 
-                req.session.a_username = username;
-                req.session.a_createdAt = account.createdAt;
-                req.session.a_createdBy = account.createdBy;
-                req.session.a_lastLogin = account.lastLogin;
-                req.session.a_peEnabled = account.peEnabled;
-                req.session.a_permissions = account.permissions;
-                req.session.loggedIn = true;
+                establishSession(req, account);
 
 
                 res.status(200).json({ code: 0, sessionToken: "kys", peStatus: false })
@@ -87,6 +71,37 @@ module.exports = function (app) {
         }
 
 
+    });
+
+    function establishSession(req, account) {
+        req.session.a_username = account.username;
+        req.session.a_name = account.name || account.username;
+        req.session.a_createdAt = account.createdAt;
+        req.session.a_createdBy = account.createdBy;
+        req.session.a_lastLogin = account.lastLogin;
+        req.session.a_peEnabled = account.peEnable === true || account.peEnabled === true;
+        req.session.a_permissions = account.permissions;
+        req.session.loggedIn = true;
+        account.lastLogin = new Date().toISOString();
+        jdata.save(jdata.get());
+    }
+
+    app.put('/api/profile', async (req, res) => {
+        if (req.session.loggedIn !== true) return res.status(401).json({ code: 1, message: 'Not logged in' });
+        const cache = jdata.get();
+        const account = cache.accounts.find((item) => item.username === req.session.a_username);
+        if (!account) return res.status(404).json({ code: 1, message: 'Account not found' });
+        const name = String(req.body.name || '').trim();
+        if (!name || name.length > 100) return res.status(400).json({ code: 1, message: 'Name must be between 1 and 100 characters.' });
+        account.name = name;
+        if (req.body.password) {
+            if (String(req.body.password).length < 10) return res.status(400).json({ code: 1, message: 'Password must contain at least 10 characters.' });
+            account.password = await bcrypt.hash(String(req.body.password), 12);
+            account.peEnable = true;
+        }
+        req.session.a_name = name;
+        jdata.save(cache);
+        res.json({ code: 0, message: 'Profile updated.' });
     });
 
     app.get('/logout', (req, res) => {

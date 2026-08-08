@@ -320,9 +320,38 @@ function renderPhoneSettings() {
 function collectPhoneSettings() {
     const settings = {};
     phoneSettingIds.forEach((id) => {
-        settings[id] = document.getElementById(id).value;
+        const control = document.getElementById(id);
+        settings[id] = control.dataset.templateValue !== undefined && control.value === '__template__' ? control.dataset.templateValue : control.value;
     });
     return settings;
+}
+
+let deviceTemplates = [];
+async function loadDeviceTemplates() {
+    const response = await fetch('/api/templates');
+    if (!response.ok) return;
+    deviceTemplates = await response.json();
+    const selector = document.getElementById('deviceTemplate');
+    deviceTemplates.forEach((template) => selector.add(new Option(template.name, template.uuid)));
+    selector.addEventListener('change', () => applyDeviceTemplate(deviceTemplates.find((template) => template.uuid === selector.value)));
+}
+
+function applyDeviceTemplate(template) {
+    phoneSettingDefinitions.forEach((setting) => {
+        const control = document.getElementById(setting.id);
+        delete control.dataset.templateValue;
+        Array.from(control.options || []).filter((option) => option.value === '__template__').forEach((option) => option.remove());
+        if (!template || template.phoneSettings[setting.id] === undefined) return;
+        const value = String(template.phoneSettings[setting.id]);
+        if (setting.options) {
+            const option = new Option(`${value} (Template)`, '__template__', true, true);
+            control.add(option, 0);
+            control.dataset.templateValue = value;
+        } else if (!control.value) {
+            control.placeholder = `${value} (Template)`;
+            control.dataset.templateValue = value;
+        }
+    });
 }
 
 function setPhoneSettings(settings = {}) {
@@ -666,6 +695,13 @@ function doSubmit(after) {
             // Request finished. Do processing here.
             console.log(this.responseText);
             alertHandle(JSON.parse(this.responseText).message, 0);
+
+            if (after === 1) {
+                fetch('/api/remoteReprovision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ips: [deviceIP] }) })
+                    .then((response) => response.json())
+                    .then((result) => alertHandle(result.code === 0 && result.results?.[0]?.success ? 'Configuration saved and reprovision command sent.' : 'Configuration saved, but reprovisioning failed.', result.code === 0 && result.results?.[0]?.success ? 0 : 1))
+                    .catch(() => alertHandle('Configuration saved, but reprovisioning failed.', 1));
+            }
 
 
 
@@ -1220,6 +1256,7 @@ function deviceXMLTypeIdentifier(deviceContext) {
 //Run readPageQueryState() when DOM loaded
 document.addEventListener('DOMContentLoaded', function () {
     renderPhoneSettings();
+    loadDeviceTemplates();
     readPageQueryState();
 });
 

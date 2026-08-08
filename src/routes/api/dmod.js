@@ -213,10 +213,8 @@ const defaultPhoneSettings = {
 };
 
 function normalizePhoneSettings(settings = {}) {
-    return {
-        ...defaultPhoneSettings,
-        ...settings
-    };
+    const populatedSettings = Object.fromEntries(Object.entries(settings || {}).filter(([, value]) => value !== undefined && value !== null && value !== ""));
+    return { ...defaultPhoneSettings, ...populatedSettings };
 }
 
 function getPublicBaseUrl(req) {
@@ -240,6 +238,22 @@ async function validateProvisioningXml(xml) {
     }
 }
 module.exports = function(app) {
+    app.delete('/api/devices', (req, res) => {
+        if (req.session.loggedIn !== true) return res.status(401).json({ code: 1, message: "Not logged in" });
+        const uuids = Array.isArray(req.body.uuids) ? req.body.uuids : [];
+        if (!uuids.length) return res.status(400).json({ code: 1, message: "No devices selected" });
+        const serverData = require('../../server/jdata');
+        const cache = serverData.get();
+        const selected = new Set(uuids.map(String));
+        const removed = cache.devices.filter((device) => selected.has(String(device.uuid)));
+        cache.devices = cache.devices.filter((device) => !selected.has(String(device.uuid)));
+        removed.forEach((device) => {
+            const configPath = path.join(__dirname, '../../data/config', device.provisioningFile || `SEP${device.mac}.cnf.xml`);
+            try { fs.unlinkSync(configPath); } catch (error) { if (error.code !== 'ENOENT') createLog(2, `Could not remove ${configPath}: ${error.message}`); }
+        });
+        serverData.save(cache);
+        res.json({ code: 0, deleted: removed.length, message: `${removed.length} device(s) deleted.` });
+    });
     app.post('/api/validateProvisioningXml', async (req, res) => {
         if (req.session.loggedIn !== true) return res.status(401).send({ code: 1, message: "Not logged in" });
 
