@@ -294,7 +294,7 @@
   </networkLocaleInfo>
   <deviceSecurityMode>1</deviceSecurityMode>
   <idleTimeout>0</idleTimeout>
-  <authenticationURL>http://provisioning.centurate.com/cisco.php</authenticationURL><!--TODO: Changed Later-->
+  <authenticationURL></authenticationURL>
   <messagesURL></messagesURL>
   <servicesURL></servicesURL>
   <directoryURL></directoryURL>
