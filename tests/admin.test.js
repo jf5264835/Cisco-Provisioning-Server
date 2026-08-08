@@ -48,6 +48,14 @@ test('critical provisioning defaults and global XML resources are present', () =
     assert.match(fs.readFileSync('src/data/misc/AppDialRules.xml', 'utf8'), /<DialRules>/);
 });
 
+test('resource tabs hide inactive panels', () => {
+    const styles = fs.readFileSync('src/public/scss/master-resources.scss', 'utf8');
+    const view = fs.readFileSync('src/views/resources.ejs', 'utf8');
+    assert.match(styles, /\.tabBody\[hidden\]\s*{\s*display:\s*none/);
+    assert.match(view, /id="dialTemplate" data-resource-panel hidden/);
+    assert.match(view, /id="appDialRules" data-resource-panel hidden/);
+});
+
 test('container publication workflow and deployment files exist', () => {
     for (const file of ['Dockerfile', 'compose.yaml', '.github/workflows/container.yml']) {
         assert.equal(fs.existsSync(file), true, `${file} should exist`);

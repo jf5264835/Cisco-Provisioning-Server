@@ -152,6 +152,12 @@ footer {
     }
 }
 
+// Author styles override the browser's built-in [hidden] rule unless this is
+// explicit. Without it, every resource panel appears under Global Resources.
+.tabBody[hidden] {
+    display: none;
+}
+
 .resourceSection {
     margin-top: 1.5rem;
 

@@ -195,6 +195,10 @@ footer {
   margin: 0;
 }
 
+.tabBody[hidden] {
+  display: none;
+}
+
 .resourceSection {
   margin-top: 1.5rem;
 }
