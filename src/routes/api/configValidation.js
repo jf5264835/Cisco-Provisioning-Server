@@ -71,6 +71,14 @@ function escapeXml(value) {
     return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character]);
 }
 
+function removeXmlElements(xml, elementNames) {
+    for (const name of elementNames) {
+        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        xml = xml.replace(new RegExp(`^[ \\t]*<${escapedName}(?:\\s[^>]*)?>[^<]*</${escapedName}>[ \\t]*\\r?\\n?`, 'gm'), '');
+    }
+    return xml;
+}
+
 function replaceOptionalXmlPlaceholders(xml, values) {
     for (const [key, candidate] of Object.entries(values)) {
         const placeholder = `<!--${key}-->`;
@@ -84,4 +92,4 @@ function replaceOptionalXmlPlaceholders(xml, values) {
     return xml;
 }
 
-module.exports = { CAPF_AUTH_MODES, cleanObject, escapeXml, replaceOptionalXmlPlaceholders, validateCommonProvisioning, validatePhoneSettings, validateTemplatePayload };
+module.exports = { CAPF_AUTH_MODES, cleanObject, escapeXml, removeXmlElements, replaceOptionalXmlPlaceholders, validateCommonProvisioning, validatePhoneSettings, validateTemplatePayload };

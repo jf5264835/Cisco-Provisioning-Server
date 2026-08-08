@@ -156,7 +156,7 @@
     <markCallAsSpam><!--markCallAsSpam--></markCallAsSpam>
     <callParkMonitor><!--callParkMonitor--></callParkMonitor>
     <allCallsOnPrimary><!--allCallsOnPrimary--></allCallsOnPrimary>
-    <softKeyControl><!--softKeyControl--></softKeyControl>
+    <softkeyControl><!--softkeyControl--></softkeyControl>
     <settingsAccess><!--settingsAccess--></settingsAccess>
     <webProtocol><!--webProtocol--></webProtocol>
     <webAccess><!--webAccess--></webAccess>

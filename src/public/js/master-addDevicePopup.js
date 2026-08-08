@@ -135,7 +135,7 @@ const phoneSettingsSchema = [
         settings: [
             { id: "recentsSoftKey", label: "Recents softkey", tag: "recentsSoftKey", path: ["device", "vendorConfig", 0, "recentsSoftKey", 0], options: binaryOptions },
             { id: "holdResumeKey", label: "Hold/resume key behavior", tag: "holdResumeKey", path: ["device", "vendorConfig", 0, "holdResumeKey", 0], type: "number" },
-            { id: "softKeyControl", label: "Softkey control", tag: "softKeyControl", path: ["device", "vendorConfig", 0, "softKeyControl", 0], options: binaryOptions },
+            { id: "softkeyControl", label: "Softkey control", tag: "softkeyControl", path: ["device", "vendorConfig", 0, "softkeyControl", 0], options: binaryOptions },
             { id: "moreKeyReversionTimer", label: "More-key reversion timer", tag: "moreKeyReversionTimer", path: ["device", "vendorConfig", 0, "moreKeyReversionTimer", 0], type: "number" },
             { id: "dialToneFromReleaseKey", label: "Dial tone from release key", tag: "dialToneFromReleaseKey", path: ["device", "vendorConfig", 0, "dialToneFromReleaseKey", 0], options: offOnOptions },
             { id: "joinAndDirectTransferPolicy", label: "Join/direct transfer policy", tag: "joinAndDirectTransferPolicy", path: ["device", "vendorConfig", 0, "joinAndDirectTransferPolicy", 0], type: "number" },
@@ -192,7 +192,7 @@ const phoneSettingsSchema = [
             { id: "enableCdpPcPort", label: "CDP PC port", tag: "enableCdpPcPort", path: ["device", "vendorConfig", 0, "enableCdpPcPort", 0], options: binaryOptions },
             { id: "enableLldpSwPort", label: "LLDP switch port", tag: "enableLldpSwPort", path: ["device", "vendorConfig", 0, "enableLldpSwPort", 0], options: binaryOptions },
             { id: "enableLldpPcPort", label: "LLDP PC port", tag: "enableLldpPcPort", path: ["device", "vendorConfig", 0, "enableLldpPcPort", 0], options: binaryOptions },
-            { id: "cdpEnable", label: "CDP", tag: "cdpEnable", path: ["device", "vendorConfig", 0, "cdpEnable", 0], options: boolOptions },
+            { id: "cdpEnable", label: "CDP", tag: "cdpEnable", path: ["device", "vendorConfig", 0, "cdpEnable", 0], options: binaryOptions },
             { id: "voiceVlanAccess", label: "Voice VLAN access", tag: "voiceVlanAccess", path: ["device", "vendorConfig", 0, "voiceVlanAccess", 0], type: "number" },
             { id: "dfBit", label: "DF bit", tag: "dfBit", path: ["device", "vendorConfig", 0, "dfBit", 0], options: binaryOptions },
             { id: "garp", label: "GARP", tag: "garp", path: ["device", "vendorConfig", 0, "garp", 0], options: offOnOptions },

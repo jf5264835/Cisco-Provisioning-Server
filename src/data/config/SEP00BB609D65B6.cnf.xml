@@ -107,10 +107,10 @@
                         <autoAnswer>
                             <autoAnswerEnabled>true</autoAnswerEnabled>
                         </autoAnswer>
-                        <callWaiting>3</callWaiting>
+                        <callWaiting>1</callWaiting>
                         <authName>1000</authName>
                         <authPassword>Test</authPassword>
-                        <contact></contact>
+                        <contact>1001</contact>
                         <sharedLine>false</sharedLine>
                         <messageWaitingLampPolicy>3</messageWaitingLampPolicy>
                         <messageWaitingAMWI>0</messageWaitingAMWI>
@@ -191,7 +191,6 @@
     <markCallAsSpam>1</markCallAsSpam>
     <callParkMonitor>1</callParkMonitor>
     <allCallsOnPrimary>0</allCallsOnPrimary>
-    <softKeyControl>1</softKeyControl>
     <settingsAccess>1</settingsAccess>
     <webProtocol>0</webProtocol>
     <webAccess>0</webAccess>
@@ -227,7 +226,7 @@
     <enableCdpPcPort>0</enableCdpPcPort>
     <enableLldpSwPort>1</enableLldpSwPort>
     <enableLldpPcPort>0</enableLldpPcPort>
-    <cdpEnable>true</cdpEnable>
+    <cdpEnable>1</cdpEnable>
     <powerNegotiation>0</powerNegotiation>
     <outOfRangeAlert>0</outOfRangeAlert>
     <scanningMode>2</scanningMode>
@@ -328,6 +327,4 @@
   <encrConfig>false</encrConfig>
   <userId></userId>
   <ownerId></ownerId>
-  <sshUserId>cisco</sshUserId>
-  <sshPassword>cisco</sshPassword>
 </device>

@@ -128,3 +128,32 @@ test('device editor tolerates optional elements omitted from XML', () => {
     assert.match(editor, /const phoneLabel = xmlValue/);
     assert.doesNotMatch(editor, /const phoneLabel = responseJSONObject[^;]+phoneLabel\[0\]/);
 });
+
+test('line defaults use binary call waiting and extension contact', () => {
+    const route = fs.readFileSync('src/routes/api/dmod.js', 'utf8');
+    assert.match(route, /<callWaiting>1<\/callWaiting>/);
+    assert.match(route, /<contact>\$\{escapeXml\(line\.lineName \?\? ""\)\}<\/contact>/);
+    const lineEditor = fs.readFileSync('src/public/js/addDevicePopup-registrationImport.js', 'utf8');
+    assert.match(lineEditor, /<select id="callWaiting_\$\{selectID\}">/);
+    assert.match(lineEditor, /<option value="1"[^>]*>Enabled<\/option>/);
+    assert.match(lineEditor, /<option value="0"[^>]*>Disabled<\/option>/);
+});
+
+test('8845 model filtering and conditional settings are applied', () => {
+    const route = fs.readFileSync('src/routes/api/dmod.js', 'utf8');
+    const template = fs.readFileSync('src/routes/api/template.xml', 'utf8');
+    assert.match(route, /String\(json\.cust\.deviceModel\) === "6"/);
+    for (const element of ['wifi', 'sdio', 'webAdmin', 'cdpEnable', 'outOfRangeAlert', 'scanningMode', 'appButtonTimer', 'appButtonPriority', 'sendKeyAction', 'powerOffWhenCharging', 'homeScreen', 'accessContacts', 'accessFavorites', 'accessVoicemail', 'accessApps']) {
+        assert.match(route, new RegExp(`"${element}"`));
+    }
+    assert.match(route, /phoneSettings\.sshAccess === "1"/);
+    assert.match(route, /if \(!phoneSettings\.softKeyFile\) phoneSettings\.softkeyControl = ""/);
+    assert.match(template, /<softkeyControl><!--softkeyControl--><\/softkeyControl>/);
+    assert.doesNotMatch(template, /softKeyControl/);
+});
+
+test('XML element filtering removes unsupported model settings', () => {
+    const { removeXmlElements } = require('../src/routes/api/configValidation');
+    const xml = '<vendorConfig>\n  <wifi>1</wifi>\n  <sdio>1</sdio>\n  <pcPort>0</pcPort>\n</vendorConfig>';
+    assert.equal(removeXmlElements(xml, ['wifi', 'sdio']), '<vendorConfig>\n  <pcPort>0</pcPort>\n</vendorConfig>');
+});
