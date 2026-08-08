@@ -11,6 +11,10 @@ const offOnOptions = [
     { value: "0", label: "Disabled" },
     { value: "1", label: "Enabled" }
 ];
+const disabledEnabledZeroOptions = [
+    { value: "1", label: "Disabled" },
+    { value: "0", label: "Enabled" }
+];
 const phoneSettingsSchema = [
     {
         title: "Display & Wallpaper",
@@ -42,7 +46,7 @@ const phoneSettingsSchema = [
             { id: "webAdmin", label: "Web admin", tag: "webAdmin", path: ["device", "vendorConfig", 0, "webAdmin", 0], options: binaryOptions },
             { id: "webProtocol", label: "Web protocol", tag: "webProtocol", path: ["device", "vendorConfig", 0, "webProtocol", 0], options: [{ value: "0", label: "HTTP" }, { value: "1", label: "HTTPS" }] },
             { id: "adminPassword", label: "Local admin password", tag: "adminPassword", path: ["device", "vendorConfig", 0, "adminPassword", 0], type: "text" },
-            { id: "sshAccess", label: "SSH access", tag: "sshAccess", path: ["device", "vendorConfig", 0, "sshAccess", 0], options: offOnOptions },
+            { id: "sshAccess", label: "SSH access", tag: "sshAccess", path: ["device", "vendorConfig", 0, "sshAccess", 0], options: disabledEnabledZeroOptions },
             { id: "phonePassword", label: "Phone unlock password", tag: "phonePassword", path: ["device", "commonProfile", 0, "phonePassword", 0], type: "text" },
             { id: "deviceSecurityMode", label: "Device security mode", tag: "deviceSecurityMode", path: ["device", "deviceSecurityMode", 0], type: "number" },
             { id: "encrConfig", label: "Encrypted config", tag: "encrConfig", path: ["device", "encrConfig", 0], options: boolOptions },
@@ -240,11 +244,6 @@ const phoneSettingsSchema = [
             { id: "inactiveLoadInformation", label: "Inactive firmware load", tag: "inactiveLoadInformation", path: ["device", "inactiveLoadInformation", 0], type: "text" },
             { id: "loadServer", label: "Firmware load server", tag: "loadServer", path: ["device", "vendorConfig", 0, "loadServer", 0], type: "text" },
             { id: "peerFirmwareSharing", label: "Peer firmware sharing", tag: "peerFirmwareSharing", path: ["device", "vendorConfig", 0, "peerFirmwareSharing", 0], options: offOnOptions },
-            { id: "userLocaleName", label: "User locale name", tag: "userLocaleName", path: ["device", "userLocale", 0, "name", 0], type: "text" },
-            { id: "userLocaleLangCode", label: "User locale language code", tag: "userLocaleLangCode", path: ["device", "userLocale", 0, "langCode", 0], type: "text" },
-            { id: "userLocaleVersion", label: "User locale version", tag: "userLocaleVersion", path: ["device", "userLocale", 0, "version", 0], type: "text" },
-            { id: "networkLocale", label: "Network locale", tag: "networkLocale", path: ["device", "networkLocale", 0], type: "text" },
-            { id: "networkLocaleVersion", label: "Network locale version", tag: "networkLocaleVersion", path: ["device", "networkLocaleInfo", 0, "version", 0], type: "text" },
             { id: "featurePolicyFile", label: "Feature policy file", tag: "featurePolicyFile", path: ["device", "featurePolicyFile", 0], type: "text" },
             { id: "dialTemplate", label: "Dial template file", tag: "dialTemplate", path: ["device", "sipProfile", 0, "dialTemplate", 0], type: "text" },
             { id: "softKeyFile", label: "Softkey file", tag: "softKeyFile", path: ["device", "sipProfile", 0, "softKeyFile", 0], type: "text" },

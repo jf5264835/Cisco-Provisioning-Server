@@ -208,7 +208,7 @@
     <accessVoicemail><!--accessVoicemail--></accessVoicemail>
     <accessApps><!--accessApps--></accessApps>
   </vendorConfig>
-  <versionStamp>d902ed5a-c1e5-4233-b1d6-a960d53d1c3a</versionStamp>
+  <versionStamp><!--versionStamp--></versionStamp>
   <loadInformation><!--loadInformation--></loadInformation>
   <inactiveLoadInformation><!--inactiveLoadInformation--></inactiveLoadInformation>
   <!-- <addOnModules>
@@ -245,18 +245,6 @@
       <version></version>
     </phoneService>
   </phoneServices>
-  <userLocale>
-    <name><!--userLocaleName--></name>
-    <uid>1</uid>
-    <langCode><!--userLocaleLangCode--></langCode>
-    <version><!--userLocaleVersion--></version>
-    <winCharSet>utf-8</winCharSet>
-  </userLocale>
-  <networkLocale><!--networkLocale--></networkLocale>
-  <networkLocaleInfo>
-    <name><!--networkLocale--></name>
-    <version><!--networkLocaleVersion--></version>
-  </networkLocaleInfo>
   <deviceSecurityMode><!--deviceSecurityMode--></deviceSecurityMode>
   <idleTimeout><!--idleTimeout--></idleTimeout>
   <authenticationURL><!--authenticationURL--></authenticationURL><!--TODO: Changed Later-->
