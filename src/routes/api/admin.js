@@ -1,6 +1,8 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const jdata = require('../../server/jdata');
+const { defaultPhoneSettings } = require('./dmod');
+const { validateTemplatePayload } = require('./configValidation');
 
 function loggedIn(req, res) {
     if (req.session.loggedIn === true) return true;
@@ -27,11 +29,11 @@ module.exports = function (app) {
         cache.templates ||= [];
         const name = String(req.body.name || '').trim();
         if (!name) return res.status(400).json({ code: 1, message: 'Template name is required.' });
-        const phoneSettings = req.body.phoneSettings;
-        if (!phoneSettings || typeof phoneSettings !== 'object' || Array.isArray(phoneSettings)) return res.status(400).json({ code: 1, message: 'Phone settings must be a JSON object.' });
-        const cpa = req.body.cpa && typeof req.body.cpa === 'object' && !Array.isArray(req.body.cpa) ? req.body.cpa : {};
+        const validation = validateTemplatePayload(req.body, defaultPhoneSettings);
+        if (validation.error) return res.status(400).json({ code: 1, message: validation.error });
+        const { cpa, phoneSettings, pbxServerIP } = validation.value;
         const uuid = String(req.body.uuid || crypto.randomUUID());
-        const template = { uuid, name, description: String(req.body.description || '').trim(), pbxServerIP: String(req.body.pbxServerIP || '').trim(), cpa, phoneSettings, updatedAt: new Date().toISOString(), updatedBy: req.session.a_username };
+        const template = { uuid, name, description: String(req.body.description || '').trim(), pbxServerIP, cpa, phoneSettings, updatedAt: new Date().toISOString(), updatedBy: req.session.a_username };
         const index = cache.templates.findIndex((item) => item.uuid === uuid);
         if (index >= 0) cache.templates[index] = { ...cache.templates[index], ...template };
         else cache.templates.push({ ...template, createdAt: new Date().toISOString() });

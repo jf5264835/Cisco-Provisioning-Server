@@ -25,10 +25,10 @@
             <members>
                 <member>
                     <callManager>
-                        <processNodeName>192.168.1.5</processNodeName>
                         <ports>
                             <sipPort>5060</sipPort>
                         </ports>
+                        <processNodeName>192.168.1.5</processNodeName>
                    </callManager>
                 </member>
             </members>
@@ -318,7 +318,6 @@
   <advertiseG722Codec>1</advertiseG722Codec>
   <rollover>0</rollover>
   <joinAcrossLines>0</joinAcrossLines>
-  <capfAuthMode>0</capfAuthMode>
   <!-- <capfList>
     <capf>
       <phonePort>3804</phonePort>
