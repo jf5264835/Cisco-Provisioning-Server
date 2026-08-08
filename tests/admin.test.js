@@ -146,7 +146,10 @@ test('8845 model filtering and conditional settings are applied', () => {
     for (const element of ['wifi', 'sdio', 'webAdmin', 'cdpEnable', 'outOfRangeAlert', 'scanningMode', 'appButtonTimer', 'appButtonPriority', 'sendKeyAction', 'powerOffWhenCharging', 'homeScreen', 'accessContacts', 'accessFavorites', 'accessVoicemail', 'accessApps']) {
         assert.match(route, new RegExp(`"${element}"`));
     }
-    assert.match(route, /phoneSettings\.sshAccess === "1"/);
+    assert.match(route, /phoneSettings\.sshAccess === "0"/);
+    assert.match(route, /xmlTemplate\.replace\("<!--versionStamp-->", randomUUID\(\)\)/);
+    assert.match(template, /<versionStamp><!--versionStamp--><\/versionStamp>/);
+    assert.doesNotMatch(template, /<userLocale>|<networkLocaleInfo>/);
     assert.match(route, /if \(!phoneSettings\.softKeyFile\) phoneSettings\.softkeyControl = ""/);
     assert.match(template, /<softkeyControl><!--softkeyControl--><\/softkeyControl>/);
     assert.doesNotMatch(template, /softKeyControl/);
