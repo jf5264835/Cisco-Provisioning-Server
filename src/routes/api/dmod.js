@@ -12,7 +12,7 @@ const phoneModelMap = {
     "placeholder": "Not Specified"
 };
 
-const {xmlBuild, builder, convert} = require('xmlbuilder2');
+const { create } = require('xmlbuilder2');
 const createLog = require("../../server/logger");
 
 const { parseString, Parser } = require('xml2js'); // Built-in module for XML parsing
@@ -249,6 +249,9 @@ async function validateProvisioningXml(xml) {
 
     const parser = new Parser();
     try {
+        // xml2js silently accepts content after the first root element. Parse with
+        // xmlbuilder2 first so concatenated provisioning documents are rejected.
+        create(xml);
         const parsed = await parser.parseStringPromise(xml);
         if (!parsed || !parsed.device) {
             return { valid: false, message: "Provisioning XML root element must be <device>." };
@@ -688,6 +691,11 @@ module.exports = function(app) {
         console.log("Final XML: " + xmlTemplate);
 
 
+        const generatedXmlValidation = await validateProvisioningXml(xmlTemplate);
+        if (!generatedXmlValidation.valid) {
+            return res.status(500).send({ code: 1, message: `Server generated invalid provisioning XML: ${generatedXmlValidation.message}` });
+        }
+
         let responseMethodText = deviceExists ? "Updated" : "Created";
         try {
             persistDeviceConfiguration(serverData, cache, previousProvisioningFile, json.meta.deviceMAC, xmlTemplate);
@@ -723,3 +731,4 @@ function persistDeviceConfiguration(serverData, cache, previousProvisioningFile,
 
 // Exported for the template API so device and template submissions use one schema.
 module.exports.defaultPhoneSettings = defaultPhoneSettings;
+module.exports.validateProvisioningXml = validateProvisioningXml;

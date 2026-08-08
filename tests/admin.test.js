@@ -114,3 +114,17 @@ test('common provisioning validation accepts boolean dropdown values', () => {
     });
     assert.match(validateCommonProvisioning({ disableSpeakerphone: '0' }).error, /true or false/);
 });
+
+test('provisioning validation rejects concatenated XML documents', async () => {
+    const { validateProvisioningXml } = require('../src/routes/api/dmod');
+    assert.equal((await validateProvisioningXml('<device><fullConfig>true</fullConfig></device>')).valid, true);
+    const duplicated = await validateProvisioningXml('<device></device><device></device>');
+    assert.equal(duplicated.valid, false);
+});
+
+test('device editor tolerates optional elements omitted from XML', () => {
+    const editor = fs.readFileSync('src/public/js/master-addDevicePopup.js', 'utf8');
+    assert.match(editor, /const xmlValue = \(path, fallback = ''\)/);
+    assert.match(editor, /const phoneLabel = xmlValue/);
+    assert.doesNotMatch(editor, /const phoneLabel = responseJSONObject[^;]+phoneLabel\[0\]/);
+});

@@ -1020,26 +1020,26 @@ function parseResponseDoc(responseJSONObject, quiet = false) {
     try {
 
     
-    // Extracting 'sipLines'
-    const sipLines = responseJSONObject.device.sipProfile[0].sipLines;
+    const xmlValue = (path, fallback = '') => {
+        const value = getByPath(responseJSONObject, path);
+        if (Array.isArray(value)) return value[0] ?? fallback;
+        return value ?? fallback;
+    };
 
-    // Date Stuff
-    const dateTemplate = responseJSONObject.device.devicePool[0].dateTimeSetting[0].dateTemplate[0];
-    const timeZone = responseJSONObject.device.devicePool[0].dateTimeSetting[0].timeZone[0];
-
-    const ntpName = responseJSONObject.device.devicePool[0].dateTimeSetting[0].ntps[0].ntp[0].name[0];
-    const ntpMode = responseJSONObject.device.devicePool[0].dateTimeSetting[0].ntps[0].ntp[0].ntpMode[0];
-
-    //server things
-    const processNodeName = responseJSONObject.device.devicePool[0].callManagerGroup[0].members[0].member[0].callManager[0].processNodeName[0];
-    const sipPort = responseJSONObject.device.devicePool[0].callManagerGroup[0].members[0].member[0].callManager[0].ports[0].sipPort[0];
-
-    //Additional metadata
-    const phoneLabel = responseJSONObject.device.sipProfile[0].phoneLabel[0];
-    const voipControlPort = responseJSONObject.device.sipProfile[0].voipControlPort[0];
-    const disableSpeaker = responseJSONObject.device.vendorConfig[0].disableSpeaker[0];
-    const disableSpeakerAndHeadset = responseJSONObject.device.vendorConfig[0].disableSpeakerAndHeadset[0];
-    const enableMuteFeature = responseJSONObject.device.vendorConfig[0].enableMuteFeature[0];
+    // Optional values are intentionally omitted from generated XML when blank,
+    // so the editor must not assume every provisioning element exists.
+    const sipLines = getByPath(responseJSONObject, ["device", "sipProfile", 0, "sipLines"]) || [];
+    const dateTemplate = xmlValue(["device", "devicePool", 0, "dateTimeSetting", 0, "dateTemplate"]);
+    const timeZone = xmlValue(["device", "devicePool", 0, "dateTimeSetting", 0, "timeZone"]);
+    const ntpName = xmlValue(["device", "devicePool", 0, "dateTimeSetting", 0, "ntps", 0, "ntp", 0, "name"]);
+    const ntpMode = xmlValue(["device", "devicePool", 0, "dateTimeSetting", 0, "ntps", 0, "ntp", 0, "ntpMode"]);
+    const processNodeName = xmlValue(["device", "devicePool", 0, "callManagerGroup", 0, "members", 0, "member", 0, "callManager", 0, "processNodeName"]);
+    const sipPort = xmlValue(["device", "devicePool", 0, "callManagerGroup", 0, "members", 0, "member", 0, "callManager", 0, "ports", 0, "sipPort"]);
+    const phoneLabel = xmlValue(["device", "sipProfile", 0, "phoneLabel"]);
+    const voipControlPort = xmlValue(["device", "sipProfile", 0, "voipControlPort"]);
+    const disableSpeaker = xmlValue(["device", "vendorConfig", 0, "disableSpeaker"], 'false');
+    const disableSpeakerAndHeadset = xmlValue(["device", "vendorConfig", 0, "disableSpeakerAndHeadset"], 'false');
+    const enableMuteFeature = xmlValue(["device", "vendorConfig", 0, "enableMuteFeature"], 'false');
     const phoneSettings = {};
     phoneSettingDefinitions.forEach((setting) => {
         const value = getByPath(responseJSONObject, setting.path);
