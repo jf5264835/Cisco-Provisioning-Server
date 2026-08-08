@@ -233,6 +233,15 @@ function getPublicBaseUrl(req) {
     return (process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, "");
 }
 
+function saveProvisioningFile(fileName, contents) {
+    const configDirectory = path.join(__dirname, '../../data/config');
+    const destination = path.join(configDirectory, fileName);
+    const temporaryFile = `${destination}.${process.pid}.tmp`;
+
+    fs.writeFileSync(temporaryFile, contents, 'utf8');
+    fs.renameSync(temporaryFile, destination);
+}
+
 async function validateProvisioningXml(xml) {
     if (!xml || typeof xml !== "string" || xml.trim() === "") {
         return { valid: false, message: "XML override is empty." };
@@ -312,6 +321,7 @@ module.exports = function(app) {
 
         let deviceExists = false;
         let deviceIndex = -1;
+        let previousProvisioningFile = null;
 
         cache.devices.forEach((device, index) => {
             if (device.uuid === json.meta.deviceUUID) {
@@ -328,6 +338,8 @@ module.exports = function(app) {
         }
         if (deviceExists) {
 
+            previousProvisioningFile = cache.devices[deviceIndex].provisioningFile || `SEP${cache.devices[deviceIndex].mac}.cnf.xml`;
+
             //Replace the device in the cache's attributes
             cache.devices[deviceIndex].name = json.meta.deviceName;
             cache.devices[deviceIndex].model = phoneModelMap[json.cust.deviceModel];
@@ -336,6 +348,7 @@ module.exports = function(app) {
             cache.devices[deviceIndex].extension = json.meta.deviceExtension;
             cache.devices[deviceIndex].ip = json.cust.deviceIP;
             cache.devices[deviceIndex].mac = json.meta.deviceMAC;
+            cache.devices[deviceIndex].provisioningFile = `SEP${json.meta.deviceMAC}.cnf.xml`;
             cache.devices[deviceIndex].enabled = json.security.enableDevice;
             cache.devices[deviceIndex].security.ipRestricted = json.security.ipRestriction;
             cache.devices[deviceIndex].security.ipWhitelist = [json.security.ipRestrictionRangeStart, json.security.ipRestrictionRangeEnd];
@@ -383,25 +396,16 @@ module.exports = function(app) {
             }
 
             const responseMethodText = deviceExists ? "Updated" : "Created";
+            try {
+                persistDeviceConfiguration(serverData, cache, previousProvisioningFile, json.meta.deviceMAC, advancedXmlOverride);
+            } catch (error) {
+                console.log("Failed to write SEP.cnf.xml to file. " + error);
+                return res.status(500).send({code: 1, message: "Server failed to write provisioning file."});
+            }
+
             createLog(1, `${responseMethodText} XML override configuration (SEP${json.meta.deviceMAC}.cnf.xml).`);
             console.log(`${responseMethodText} XML override configuration (SEP${json.meta.deviceMAC}.cnf.xml).`);
-
-            serverData.save(cache);
-
-            fs.writeFile(path.join(__dirname, `../../data/config/SEP${json.meta.deviceMAC}.cnf.xml`), advancedXmlOverride, (err) => {
-                if(err) {
-                    console.log("Failed to write SEP.cnf.xml to file. " + err);
-                    res.send({code: 1, message: "Server failed to write provisioning file."});
-                    return;
-                }
-
-                res.send({code: 0, message: "Your XML override has been saved successfully."});
-
-                setTimeout(() => {
-                    console.log("New XML override posted by purge");
-                    serverData.forcePurge();
-                }, 2000);
-            });
+            res.send({code: 0, message: "Your XML override has been saved successfully."});
             return;
         }
 
@@ -684,30 +688,34 @@ module.exports = function(app) {
 
 
         let responseMethodText = deviceExists ? "Updated" : "Created";
+        try {
+            persistDeviceConfiguration(serverData, cache, previousProvisioningFile, json.meta.deviceMAC, xmlTemplate);
+        } catch (error) {
+            console.log("Failed to write SEP.cnf.xml to file. " + error);
+            return res.status(500).send({code: 1, message: "Server failed to write provisioning file."});
+        }
+
         createLog(1, `${responseMethodText} new configuration (SEP${json.meta.deviceMAC}.cnf.xml).`);
         console.log(`${responseMethodText} new configuration (SEP${json.meta.deviceMAC}.cnf.xml).`);
-
-        //Save the Cache File
-        serverData.save(cache);
-
-        fs.writeFile(path.join(__dirname, `../../data/config/SEP${json.meta.deviceMAC}.cnf.xml`), xmlTemplate, (err) => {
-            if(err) {
-                console.log("Failed to write SEP.cnf.xml to file. " + err);
-                res.send({code: 1, message: "Server failed to write provisioning file."});
-                return;
-            } else {
-                res.send({code: 0, message: "Your data has been saved successfully."});
-
-                //Asynchrously wait 2 seconds, then run serverData.forcePurge(); 
-                setTimeout(() => {
-                    console.log("New configuration posted by purge");
-                    serverData.forcePurge();
-                }, 2000);
-            }
-        });
+        res.send({code: 0, message: "Your data has been saved successfully."});
 
         
 
 
     });
+}
+
+function persistDeviceConfiguration(serverData, cache, previousProvisioningFile, macAddress, xml) {
+    const provisioningFile = `SEP${macAddress}.cnf.xml`;
+    saveProvisioningFile(provisioningFile, xml);
+
+    serverData.save(cache);
+
+    if (previousProvisioningFile && previousProvisioningFile !== provisioningFile) {
+        try {
+            fs.unlinkSync(path.join(__dirname, '../../data/config', previousProvisioningFile));
+        } catch (error) {
+            if (error.code !== 'ENOENT') createLog(2, `Could not remove old provisioning file ${previousProvisioningFile}: ${error.message}`);
+        }
+    }
 }
