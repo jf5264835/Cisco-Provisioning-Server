@@ -101,5 +101,16 @@ test('configuration validation removes blanks and restricts CAPF modes', () => {
     assert.deepEqual(validatePhoneSettings({ capfAuthMode: '2', timerT1: '600', unused: '' }, defaults).value, { capfAuthMode: '2', timerT1: '600' });
     assert.match(validatePhoneSettings({ capfAuthMode: '0' }, defaults).error, /1, 2, or 3/);
     assert.match(validatePhoneSettings({ timerT1: 'fast' }, defaults).error, /integer/);
+    assert.deepEqual(validatePhoneSettings({ capfAuthMode: 2, timerT1: 600 }, defaults).value, { capfAuthMode: '2', timerT1: '600' });
     assert.equal(replaceOptionalXmlPlaceholders('<device>\n  <capfAuthMode><!--capfAuthMode--></capfAuthMode>\n</device>', { capfAuthMode: '' }), '<device>\n</device>');
+});
+
+test('common provisioning validation accepts boolean dropdown values', () => {
+    const { validateCommonProvisioning } = require('../src/routes/api/configValidation');
+    assert.deepEqual(validateCommonProvisioning({ disableSpeakerphone: 'false', disableSpeakerphoneAndHeadset: true, enableMuteFeature: false }).value, {
+        disableSpeakerphone: 'false',
+        disableSpeakerphoneAndHeadset: 'true',
+        enableMuteFeature: 'false'
+    });
+    assert.match(validateCommonProvisioning({ disableSpeakerphone: '0' }).error, /true or false/);
 });

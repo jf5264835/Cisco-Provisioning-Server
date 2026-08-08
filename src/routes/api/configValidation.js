@@ -2,9 +2,8 @@ const net = require('net');
 
 const CAPF_AUTH_MODES = new Set(['1', '2', '3']);
 const BOOLEAN_VALUES = new Set(['true', 'false']);
-const BINARY_VALUES = new Set(['0', '1']);
 const CPA_KEYS = new Set(['dateTemplate', 'timeZone', 'ntpName', 'ntpMode', 'sipPort', 'phoneLabel', 'disableSpeakerphone', 'disableSpeakerphoneAndHeadset', 'enableMuteFeature', 'voipControlPort']);
-const CPA_BINARY_KEYS = new Set(['disableSpeakerphone', 'disableSpeakerphoneAndHeadset', 'enableMuteFeature']);
+const CPA_BOOLEAN_KEYS = new Set(['disableSpeakerphone', 'disableSpeakerphoneAndHeadset', 'enableMuteFeature']);
 const PORT_KEYS = new Set(['sipPort', 'voipControlPort']);
 
 function isBlank(value) {
@@ -42,7 +41,7 @@ function validateCommonProvisioning(input) {
         }
     }
     if (result.value.ntpMode !== undefined && !['unicast', 'directedbroadcast', 'broadcast', 'multicast', 'anycast'].includes(result.value.ntpMode)) return { error: 'cpa.ntpMode is not supported.' };
-    for (const key of CPA_BINARY_KEYS) if (result.value[key] !== undefined && !BINARY_VALUES.has(result.value[key])) return { error: `cpa.${key} must be 0 or 1.` };
+    for (const key of CPA_BOOLEAN_KEYS) if (result.value[key] !== undefined && !BOOLEAN_VALUES.has(result.value[key])) return { error: `cpa.${key} must be true or false.` };
     return result;
 }
 
