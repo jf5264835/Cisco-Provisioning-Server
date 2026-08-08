@@ -301,7 +301,7 @@ module.exports = function(app) {
         json.cpa = normalizeCommonProvisioningAttributes(json.cpa);
         json.meta.deviceMAC = String(json.meta.deviceMAC || '').toUpperCase();
         if (!/^[0-9A-F]{12}$/.test(json.meta.deviceMAC)) return res.status(400).json({ code: 1, message: "MAC address must be exactly 12 hexadecimal characters without colons or separators." });
-        if (!net.isIP(String(json.cust.deviceIP || ''))) return res.status(400).json({ code: 1, message: "Device IP must be a valid IPv4 or IPv6 address." });
+        if (json.cust.deviceIP && !net.isIP(String(json.cust.deviceIP))) return res.status(400).json({ code: 1, message: "Device IP must be a valid IPv4 or IPv6 address when provided." });
         if (!net.isIP(String(json.meta.pbxServerIP || ''))) return res.status(400).json({ code: 1, message: "PBX server IP must be a valid IPv4 or IPv6 address." });
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(json.meta.deviceUUID || ''))) return res.status(400).json({ code: 1, message: "Device UUID must be a valid UUIDv4." });
 

@@ -34,6 +34,12 @@ test('device actions remain inside authenticated management routes', () => {
     assert.match(view, /Config Missing/);
 });
 
+test('device IP is optional but validated when supplied', () => {
+    const route = fs.readFileSync('src/routes/api/dmod.js', 'utf8');
+    assert.match(route, /json\.cust\.deviceIP && !net\.isIP/);
+    assert.match(route, /PBX server IP must be a valid IPv4 or IPv6 address/);
+});
+
 test('critical provisioning defaults and global XML resources are present', () => {
     const template = fs.readFileSync('src/routes/api/template.xml', 'utf8');
     assert.match(template, /<member priority="0">/);

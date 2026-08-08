@@ -258,6 +258,7 @@ const phoneSettingsSchema = [
 ];
 const phoneSettingDefinitions = phoneSettingsSchema.flatMap((section) => section.settings);
 const phoneSettingIds = phoneSettingDefinitions.map((setting) => setting.id);
+const commonProvisioningIds = ['dateTemplate', 'timeZone', 'ntpName', 'ntpMode', 'sipPort', 'phoneLabel', 'disableSpeakerphone', 'disableSpeakerphoneAndHeadset', 'enableMuteFeature', 'voipControlPort'];
 
 function getByPath(source, path) {
     return path.reduce((current, key) => {
@@ -336,6 +337,20 @@ function collectExplicitTemplateSettings() {
     return settings;
 }
 
+function collectExplicitCommonProvisioning() {
+    const attributes = {};
+    commonProvisioningIds.forEach((id) => {
+        const control = document.getElementById(id);
+        if (control.dataset.explicit === 'true' && control.value !== '') attributes[id] = control.value;
+    });
+    return attributes;
+}
+
+function resolvedControlValue(id) {
+    const control = document.getElementById(id);
+    return control.dataset.templateValue !== undefined && control.value === '__template__' ? control.dataset.templateValue : (control.value || control.dataset.templateValue || '');
+}
+
 let deviceTemplates = [];
 async function loadDeviceTemplates() {
     const response = await fetch('/api/templates');
@@ -351,16 +366,32 @@ function applyDeviceTemplate(template) {
         const control = document.getElementById(setting.id);
         delete control.dataset.templateValue;
         Array.from(control.options || []).filter((option) => option.value === '__template__').forEach((option) => option.remove());
-        if (!template || template.phoneSettings[setting.id] === undefined) return;
+        if (!template || template.phoneSettings?.[setting.id] === undefined) return;
         const value = String(template.phoneSettings[setting.id]);
         if (setting.options) {
             const option = new Option(`${value} (Template)`, '__template__', true, true);
             control.add(option, 0);
             control.dataset.templateValue = value;
-        } else if (!control.value) {
+        } else {
+            control.value = '';
             control.placeholder = `${value} (Template)`;
             control.dataset.templateValue = value;
         }
+    });
+    const inheritedAttributes = { ...(template?.cpa || {}), pbxServerIP: template?.pbxServerIP };
+    [...commonProvisioningIds, 'pbxServerIP'].forEach((id) => {
+        const control = document.getElementById(id);
+        delete control.dataset.templateValue;
+        Array.from(control.options || []).filter((option) => option.value === '__template__').forEach((option) => option.remove());
+        const inheritedValue = inheritedAttributes[id];
+        if (inheritedValue === undefined || inheritedValue === '') return;
+        if (control.tagName === 'SELECT') {
+            control.add(new Option(`${inheritedValue} (Template)`, '__template__', true, true), 0);
+        } else {
+            control.value = '';
+            control.placeholder = `${inheritedValue} (Template)`;
+        }
+        control.dataset.templateValue = String(inheritedValue);
     });
 }
 
@@ -420,23 +451,23 @@ function doSubmit(after) {
     const deviceDescription = document.getElementById("deviceDescription").value;
     const deviceExtension = document.getElementById("deviceExtension").value;
     const deviceMAC = document.getElementById("deviceMAC").value;
-    const pbxServerIP = document.getElementById("pbxServerIP").value;
+    const pbxServerIP = resolvedControlValue("pbxServerIP");
 
     /*
     Common Provisioning Attributes
     */
 
-    const dateTemplate = document.getElementById("dateTemplate").value;
-    const timeZone = document.getElementById("timeZone").value;
-    const ntpName = document.getElementById("ntpName").value;
+    const dateTemplate = resolvedControlValue("dateTemplate");
+    const timeZone = resolvedControlValue("timeZone");
+    const ntpName = resolvedControlValue("ntpName");
     //NTP Mode is <select> 
-    const ntpMode = document.getElementById("ntpMode").value;
-    const sipPort = document.getElementById("sipPort").value;
-    const phoneLabel = document.getElementById("phoneLabel").value;
-    const disableSpeakerphone = document.getElementById("disableSpeakerphone").value;
-    const disableSpeakerphoneAndHeadset = document.getElementById("disableSpeakerphoneAndHeadset").value;
-    const enableMuteFeature = document.getElementById("enableMuteFeature").value;
-    const voipControlPort = document.getElementById("voipControlPort").value;
+    const ntpMode = resolvedControlValue("ntpMode");
+    const sipPort = resolvedControlValue("sipPort");
+    const phoneLabel = resolvedControlValue("phoneLabel");
+    const disableSpeakerphone = resolvedControlValue("disableSpeakerphone");
+    const disableSpeakerphoneAndHeadset = resolvedControlValue("disableSpeakerphoneAndHeadset");
+    const enableMuteFeature = resolvedControlValue("enableMuteFeature");
+    const voipControlPort = resolvedControlValue("voipControlPort");
 
     const deviceModel = document.getElementById("deviceModel").value;
     const deviceGroups = document.getElementById("deviceGroups").value;
@@ -462,8 +493,8 @@ function doSubmit(after) {
         alertHandle("MAC address must be exactly 12 hexadecimal characters without colons or separators.");
         return;
     }
-    if (!isValidIpAddress(deviceIP) || !isValidIpAddress(pbxServerIP)) {
-        alertHandle("Device IP and PBX server IP must be valid IP addresses.");
+    if ((deviceIP && !isValidIpAddress(deviceIP)) || !isValidIpAddress(pbxServerIP)) {
+        alertHandle("Device IP must be valid when provided, and PBX server IP must be a valid IP address.");
         return;
     }
 
@@ -814,6 +845,7 @@ async function initializeTemplateEditor(isDuplicate) {
     document.getElementById('fieldset-status').style.display = 'none';
     document.getElementById('lineKeyFieldset').style.display = 'none';
     document.getElementById('templateInfoFieldset').style.display = 'block';
+    document.getElementById('cpaFieldset').style.display = 'block';
     document.getElementById('phoneSettingsFieldset').style.display = 'block';
     document.querySelector('label[for="deviceTemplate"]').style.display = 'none';
     document.getElementById('deviceTemplate').style.display = 'none';
@@ -821,6 +853,13 @@ async function initializeTemplateEditor(isDuplicate) {
     phoneSettingDefinitions.filter((setting) => setting.options).forEach((setting) => {
         const control = document.getElementById(setting.id);
         control.add(new Option('Not set (omit from template)', ''), 0);
+        control.value = '';
+    });
+    commonProvisioningIds.forEach((id) => {
+        const control = document.getElementById(id);
+        control.dataset.explicit = 'false';
+        control.addEventListener('change', () => { control.dataset.explicit = 'true'; });
+        if (control.tagName === 'SELECT') control.add(new Option('Not set (omit from template)', ''), 0);
         control.value = '';
     });
     document.getElementById('actionFieldset').style.display = 'block';
@@ -837,6 +876,11 @@ async function initializeTemplateEditor(isDuplicate) {
     editingTemplateUuid = isDuplicate ? null : template.uuid;
     document.getElementById('templateEditorName').value = isDuplicate ? `${template.name} (Copy)` : template.name;
     document.getElementById('templateEditorDescription').value = template.description || '';
+    document.getElementById('templateEditorPbxServerIP').value = template.pbxServerIP || '';
+    Object.entries(template.cpa || {}).forEach(([id, value]) => {
+        const control = document.getElementById(id);
+        if (control) { control.value = value; control.dataset.explicit = 'true'; }
+    });
     Object.entries(template.phoneSettings || {}).forEach(([id, value]) => {
         const control = document.getElementById(id);
         if (control) { control.value = value; control.dataset.explicit = 'true'; }
@@ -846,7 +890,9 @@ async function initializeTemplateEditor(isDuplicate) {
 async function saveTemplateFromEditor() {
     const name = document.getElementById('templateEditorName').value.trim();
     if (!name) return alertHandle('Template name is required.');
-    const response = await fetch('/api/templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uuid: editingTemplateUuid || undefined, name, description: document.getElementById('templateEditorDescription').value, phoneSettings: collectExplicitTemplateSettings() }) });
+    const pbxServerIP = document.getElementById('templateEditorPbxServerIP').value.trim();
+    if (pbxServerIP && !isValidIpAddress(pbxServerIP)) return alertHandle('PBX server IP must be a valid IP address when provided.');
+    const response = await fetch('/api/templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uuid: editingTemplateUuid || undefined, name, description: document.getElementById('templateEditorDescription').value, pbxServerIP, cpa: collectExplicitCommonProvisioning(), phoneSettings: collectExplicitTemplateSettings() }) });
     const payload = await response.json();
     if (!response.ok) return alertHandle(payload.message || 'Unable to save template.');
     window.location = '/dashboard/templates';
