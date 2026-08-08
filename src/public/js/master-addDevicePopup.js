@@ -258,6 +258,7 @@ const phoneSettingsSchema = [
 ];
 const phoneSettingDefinitions = phoneSettingsSchema.flatMap((section) => section.settings);
 const phoneSettingIds = phoneSettingDefinitions.map((setting) => setting.id);
+const commonProvisioningIds = ['dateTemplate', 'timeZone', 'ntpName', 'ntpMode', 'sipPort', 'phoneLabel', 'disableSpeakerphone', 'disableSpeakerphoneAndHeadset', 'enableMuteFeature', 'voipControlPort'];
 
 function getByPath(source, path) {
     return path.reduce((current, key) => {
@@ -304,6 +305,7 @@ function renderPhoneSettings() {
             }
             control.id = setting.id;
             control.value = setting.defaultValue || "";
+            control.addEventListener('change', () => { control.dataset.explicit = 'true'; });
 
             const xmlName = document.createElement("span");
             xmlName.className = "xmlName";
@@ -320,9 +322,77 @@ function renderPhoneSettings() {
 function collectPhoneSettings() {
     const settings = {};
     phoneSettingIds.forEach((id) => {
-        settings[id] = document.getElementById(id).value;
+        const control = document.getElementById(id);
+        settings[id] = control.dataset.templateValue !== undefined && control.value === '__template__' ? control.dataset.templateValue : control.value;
     });
     return settings;
+}
+
+function collectExplicitTemplateSettings() {
+    const settings = {};
+    phoneSettingIds.forEach((id) => {
+        const control = document.getElementById(id);
+        if (control.dataset.explicit === 'true' && control.value !== '') settings[id] = control.value;
+    });
+    return settings;
+}
+
+function collectExplicitCommonProvisioning() {
+    const attributes = {};
+    commonProvisioningIds.forEach((id) => {
+        const control = document.getElementById(id);
+        if (control.dataset.explicit === 'true' && control.value !== '') attributes[id] = control.value;
+    });
+    return attributes;
+}
+
+function resolvedControlValue(id) {
+    const control = document.getElementById(id);
+    return control.dataset.templateValue !== undefined && control.value === '__template__' ? control.dataset.templateValue : (control.value || control.dataset.templateValue || '');
+}
+
+let deviceTemplates = [];
+async function loadDeviceTemplates() {
+    const response = await fetch('/api/templates');
+    if (!response.ok) return;
+    deviceTemplates = await response.json();
+    const selector = document.getElementById('deviceTemplate');
+    deviceTemplates.forEach((template) => selector.add(new Option(template.name, template.uuid)));
+    selector.addEventListener('change', () => applyDeviceTemplate(deviceTemplates.find((template) => template.uuid === selector.value)));
+}
+
+function applyDeviceTemplate(template) {
+    phoneSettingDefinitions.forEach((setting) => {
+        const control = document.getElementById(setting.id);
+        delete control.dataset.templateValue;
+        Array.from(control.options || []).filter((option) => option.value === '__template__').forEach((option) => option.remove());
+        if (!template || template.phoneSettings?.[setting.id] === undefined) return;
+        const value = String(template.phoneSettings[setting.id]);
+        if (setting.options) {
+            const option = new Option(`${value} (Template)`, '__template__', true, true);
+            control.add(option, 0);
+            control.dataset.templateValue = value;
+        } else {
+            control.value = '';
+            control.placeholder = `${value} (Template)`;
+            control.dataset.templateValue = value;
+        }
+    });
+    const inheritedAttributes = { ...(template?.cpa || {}), pbxServerIP: template?.pbxServerIP };
+    [...commonProvisioningIds, 'pbxServerIP'].forEach((id) => {
+        const control = document.getElementById(id);
+        delete control.dataset.templateValue;
+        Array.from(control.options || []).filter((option) => option.value === '__template__').forEach((option) => option.remove());
+        const inheritedValue = inheritedAttributes[id];
+        if (inheritedValue === undefined || inheritedValue === '') return;
+        if (control.tagName === 'SELECT') {
+            control.add(new Option(`${inheritedValue} (Template)`, '__template__', true, true), 0);
+        } else {
+            control.value = '';
+            control.placeholder = `${inheritedValue} (Template)`;
+        }
+        control.dataset.templateValue = String(inheritedValue);
+    });
 }
 
 function setPhoneSettings(settings = {}) {
@@ -381,23 +451,23 @@ function doSubmit(after) {
     const deviceDescription = document.getElementById("deviceDescription").value;
     const deviceExtension = document.getElementById("deviceExtension").value;
     const deviceMAC = document.getElementById("deviceMAC").value;
-    const pbxServerIP = document.getElementById("pbxServerIP").value;
+    const pbxServerIP = resolvedControlValue("pbxServerIP");
 
     /*
     Common Provisioning Attributes
     */
 
-    const dateTemplate = document.getElementById("dateTemplate").value;
-    const timeZone = document.getElementById("timeZone").value;
-    const ntpName = document.getElementById("ntpName").value;
+    const dateTemplate = resolvedControlValue("dateTemplate");
+    const timeZone = resolvedControlValue("timeZone");
+    const ntpName = resolvedControlValue("ntpName");
     //NTP Mode is <select> 
-    const ntpMode = document.getElementById("ntpMode").value;
-    const sipPort = document.getElementById("sipPort").value;
-    const phoneLabel = document.getElementById("phoneLabel").value;
-    const disableSpeakerphone = document.getElementById("disableSpeakerphone").value;
-    const disableSpeakerphoneAndHeadset = document.getElementById("disableSpeakerphoneAndHeadset").value;
-    const enableMuteFeature = document.getElementById("enableMuteFeature").value;
-    const voipControlPort = document.getElementById("voipControlPort").value;
+    const ntpMode = resolvedControlValue("ntpMode");
+    const sipPort = resolvedControlValue("sipPort");
+    const phoneLabel = resolvedControlValue("phoneLabel");
+    const disableSpeakerphone = resolvedControlValue("disableSpeakerphone");
+    const disableSpeakerphoneAndHeadset = resolvedControlValue("disableSpeakerphoneAndHeadset");
+    const enableMuteFeature = resolvedControlValue("enableMuteFeature");
+    const voipControlPort = resolvedControlValue("voipControlPort");
 
     const deviceModel = document.getElementById("deviceModel").value;
     const deviceGroups = document.getElementById("deviceGroups").value;
@@ -413,6 +483,20 @@ function doSubmit(after) {
     const xmlOverrideEnabled = document.getElementById("xmlOverrideEnabled").checked;
     const xmlOverride = document.getElementById("xmlOverride").value;
     const phoneSettings = collectPhoneSettings();
+
+    if (pState === 'template' || pState === 'template-duplicate') {
+        saveTemplateFromEditor();
+        return;
+    }
+
+    if (!/^[0-9A-F]{12}$/.test(deviceMAC)) {
+        alertHandle("MAC address must be exactly 12 hexadecimal characters without colons or separators.");
+        return;
+    }
+    if ((deviceIP && !isValidIpAddress(deviceIP)) || !isValidIpAddress(pbxServerIP)) {
+        alertHandle("Device IP must be valid when provided, and PBX server IP must be a valid IP address.");
+        return;
+    }
 
     /**
      * Retrieve Line Key Values
@@ -667,6 +751,13 @@ function doSubmit(after) {
             console.log(this.responseText);
             alertHandle(JSON.parse(this.responseText).message, 0);
 
+            if (after === 1) {
+                fetch('/api/remoteReprovision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ips: [deviceIP] }) })
+                    .then((response) => response.json())
+                    .then((result) => alertHandle(result.code === 0 && result.results?.[0]?.success ? 'Configuration saved and reprovision command sent.' : 'Configuration saved, but reprovisioning failed.', result.code === 0 && result.results?.[0]?.success ? 0 : 1))
+                    .catch(() => alertHandle('Configuration saved, but reprovisioning failed.', 1));
+            }
+
 
 
             if(document.getElementById('dstatus-fresh').style.display == "block") {
@@ -698,6 +789,13 @@ function doSubmit(after) {
             }
         }
     };
+}
+
+function isValidIpAddress(value) {
+    if (!value) return false;
+    const ipv4 = value.split('.');
+    if (ipv4.length === 4 && ipv4.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)) return true;
+    return /^[0-9a-f:]+$/i.test(value) && value.includes(':');
 }
 
 function setXmlOverrideStatus(message, isError = false) {
@@ -741,6 +839,64 @@ function validateXmlOverride() {
 }
 
 let pState = null;
+let editingTemplateUuid = null;
+async function initializeTemplateEditor(isDuplicate) {
+    hideAllFieldsets();
+    document.getElementById('fieldset-status').style.display = 'none';
+    document.getElementById('lineKeyFieldset').style.display = 'none';
+    document.getElementById('templateInfoFieldset').style.display = 'block';
+    document.getElementById('cpaFieldset').style.display = 'block';
+    document.getElementById('phoneSettingsFieldset').style.display = 'block';
+    document.querySelector('label[for="deviceTemplate"]').style.display = 'none';
+    document.getElementById('deviceTemplate').style.display = 'none';
+    document.querySelector('#phoneSettingsFieldset > p.tip').style.display = 'none';
+    phoneSettingDefinitions.filter((setting) => setting.options).forEach((setting) => {
+        const control = document.getElementById(setting.id);
+        control.add(new Option('Not set (omit from template)', ''), 0);
+        control.value = '';
+    });
+    commonProvisioningIds.forEach((id) => {
+        const control = document.getElementById(id);
+        control.dataset.explicit = 'false';
+        control.addEventListener('change', () => { control.dataset.explicit = 'true'; });
+        if (control.tagName === 'SELECT') control.add(new Option('Not set (omit from template)', ''), 0);
+        control.value = '';
+    });
+    document.getElementById('actionFieldset').style.display = 'block';
+    const actionButtons = document.querySelectorAll('#actionFieldset button');
+    actionButtons[0].innerHTML = '<i class="icmn-floppy-disk"></i> Save Template';
+    if (actionButtons[1]) actionButtons[1].style.display = 'none';
+    document.getElementById('cbRP').style.display = 'none';
+    const templateUuid = new URLSearchParams(window.location.search).get('data');
+    if (!templateUuid) return;
+    const response = await fetch('/api/templates');
+    const templates = await response.json();
+    const template = templates.find((item) => item.uuid === templateUuid);
+    if (!template) return alertHandle('Template not found.');
+    editingTemplateUuid = isDuplicate ? null : template.uuid;
+    document.getElementById('templateEditorName').value = isDuplicate ? `${template.name} (Copy)` : template.name;
+    document.getElementById('templateEditorDescription').value = template.description || '';
+    document.getElementById('templateEditorPbxServerIP').value = template.pbxServerIP || '';
+    Object.entries(template.cpa || {}).forEach(([id, value]) => {
+        const control = document.getElementById(id);
+        if (control) { control.value = value; control.dataset.explicit = 'true'; }
+    });
+    Object.entries(template.phoneSettings || {}).forEach(([id, value]) => {
+        const control = document.getElementById(id);
+        if (control) { control.value = value; control.dataset.explicit = 'true'; }
+    });
+}
+
+async function saveTemplateFromEditor() {
+    const name = document.getElementById('templateEditorName').value.trim();
+    if (!name) return alertHandle('Template name is required.');
+    const pbxServerIP = document.getElementById('templateEditorPbxServerIP').value.trim();
+    if (pbxServerIP && !isValidIpAddress(pbxServerIP)) return alertHandle('PBX server IP must be a valid IP address when provided.');
+    const response = await fetch('/api/templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uuid: editingTemplateUuid || undefined, name, description: document.getElementById('templateEditorDescription').value, pbxServerIP, cpa: collectExplicitCommonProvisioning(), phoneSettings: collectExplicitTemplateSettings() }) });
+    const payload = await response.json();
+    if (!response.ok) return alertHandle(payload.message || 'Unable to save template.');
+    window.location = '/dashboard/templates';
+}
 
 function showAllFieldsets() {
     document.getElementById('lineKeyFieldset').style.opacity = "100";
@@ -772,7 +928,13 @@ function readPageQueryState() {
     let additionStatus = urlParams.get('astat'); //Whether to add or modify a device
     pState = additionStatus;
 
-    if (additionStatus == "mod") {
+    if (additionStatus === 'template' || additionStatus === 'template-duplicate') {
+        initializeTemplateEditor(additionStatus === 'template-duplicate');
+        return;
+    }
+
+    if (additionStatus == "mod" || additionStatus == "duplicate") {
+        const isDuplicate = additionStatus === "duplicate";
         const deviceUUID = urlParams.get('data'); //Get the device UUID
 
         //Create XMLHTTPRequest to get device data
@@ -796,8 +958,9 @@ function readPageQueryState() {
                 if (response.code != 0) {
                     console.error("Error code returned from server.");
                     document.getElementById('dstatus-error').style.display = "block";
-                    document.getElementById('dstatus-error').innerHTML = document.getElementById('dstatus-error').innerHTML.replace("<!--CONTEXT-->", `Could not load device due to Server Parser Error (2)`);
+                    document.getElementById('dstatus-error').innerHTML = document.getElementById('dstatus-error').innerHTML.replace("<!--CONTEXT-->", response.message || `Could not load device due to Server Parser Error (2)`);
                     document.getElementById('dstatus-wait').style.display = "none";
+                    return;
                 }
                 lastLoadedRawProvision = response.rawProvision || "";
                 console.log(response);
@@ -813,6 +976,14 @@ function readPageQueryState() {
                         : reimportDeviceOverrideOnly(response.config);
 
                     if(didLoad) {
+                        if (isDuplicate) {
+                            document.getElementById('deviceUUID').value = generateUUID();
+                            document.getElementById('deviceMAC').value = '';
+                            document.getElementById('deviceIP').value = '';
+                            document.getElementById('deviceName').value += ' (Copy)';
+                            pState = 'duplicate';
+                        }
+                        document.getElementById('deviceUUID').disabled = true;
                         showAllFieldsets();
                         document.getElementById('dstatus-wait').style.display = "none";
                         console.log(`[${new Date().toISOString()}] Loaded existing configuration`);
@@ -831,6 +1002,9 @@ function readPageQueryState() {
         });
 
         document.getElementById('dstatus-fresh').style.display = "block";
+        document.getElementById('deviceUUID').value = generateUUID();
+        document.getElementById('deviceUUID').disabled = true;
+        document.getElementById('deviceUUIDautoGen').checked = true;
         showAllFieldsets();
     }
 
@@ -1220,6 +1394,7 @@ function deviceXMLTypeIdentifier(deviceContext) {
 //Run readPageQueryState() when DOM loaded
 document.addEventListener('DOMContentLoaded', function () {
     renderPhoneSettings();
+    loadDeviceTemplates();
     readPageQueryState();
 });
 

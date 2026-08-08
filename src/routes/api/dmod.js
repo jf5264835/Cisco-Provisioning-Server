@@ -19,6 +19,7 @@ const { parseString, Parser } = require('xml2js'); // Built-in module for XML pa
 const { response } = require('express');
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 
 const defaultPhoneSettings = {
     cnfJoinEnabled: "true",
@@ -70,7 +71,7 @@ const defaultPhoneSettings = {
     externalNumberMask: "",
     dscpForAudio: "184",
     ringSettingBusyStationPolicy: "0",
-    dialTemplate: "",
+    dialTemplate: "DialTemplate.xml",
     softKeyFile: "",
     MissedCallLoggingOption: "1",
     featurePolicyFile: "",
@@ -213,10 +214,19 @@ const defaultPhoneSettings = {
 };
 
 function normalizePhoneSettings(settings = {}) {
-    return {
-        ...defaultPhoneSettings,
-        ...settings
+    const populatedSettings = Object.fromEntries(Object.entries(settings || {}).filter(([, value]) => value !== undefined && value !== null && value !== ""));
+    return { ...defaultPhoneSettings, ...populatedSettings };
+}
+
+function normalizeCommonProvisioningAttributes(attributes = {}) {
+    const defaults = {
+        dateTemplate: "D/M/Y",
+        ntpName: "0.pool.ntp.org",
+        ntpMode: "unicast",
+        sipPort: "5060",
+        voipControlPort: "5060"
     };
+    return Object.fromEntries(Object.entries({ ...defaults, ...attributes }).map(([key, value]) => [key, value === undefined || value === null || value === "" ? defaults[key] || "" : value]));
 }
 
 function getPublicBaseUrl(req) {
@@ -240,6 +250,22 @@ async function validateProvisioningXml(xml) {
     }
 }
 module.exports = function(app) {
+    app.delete('/api/devices', (req, res) => {
+        if (req.session.loggedIn !== true) return res.status(401).json({ code: 1, message: "Not logged in" });
+        const uuids = Array.isArray(req.body.uuids) ? req.body.uuids : [];
+        if (!uuids.length) return res.status(400).json({ code: 1, message: "No devices selected" });
+        const serverData = require('../../server/jdata');
+        const cache = serverData.get();
+        const selected = new Set(uuids.map(String));
+        const removed = cache.devices.filter((device) => selected.has(String(device.uuid)));
+        cache.devices = cache.devices.filter((device) => !selected.has(String(device.uuid)));
+        removed.forEach((device) => {
+            const configPath = path.join(__dirname, '../../data/config', device.provisioningFile || `SEP${device.mac}.cnf.xml`);
+            try { fs.unlinkSync(configPath); } catch (error) { if (error.code !== 'ENOENT') createLog(2, `Could not remove ${configPath}: ${error.message}`); }
+        });
+        serverData.save(cache);
+        res.json({ code: 0, deleted: removed.length, message: `${removed.length} device(s) deleted.` });
+    });
     app.post('/api/validateProvisioningXml', async (req, res) => {
         if (req.session.loggedIn !== true) return res.status(401).send({ code: 1, message: "Not logged in" });
 
@@ -272,6 +298,12 @@ module.exports = function(app) {
             res.json({code: 1, message: "Invalid JSON"});
             return;
         }
+        json.cpa = normalizeCommonProvisioningAttributes(json.cpa);
+        json.meta.deviceMAC = String(json.meta.deviceMAC || '').toUpperCase();
+        if (!/^[0-9A-F]{12}$/.test(json.meta.deviceMAC)) return res.status(400).json({ code: 1, message: "MAC address must be exactly 12 hexadecimal characters without colons or separators." });
+        if (json.cust.deviceIP && !net.isIP(String(json.cust.deviceIP))) return res.status(400).json({ code: 1, message: "Device IP must be a valid IPv4 or IPv6 address when provided." });
+        if (!net.isIP(String(json.meta.pbxServerIP || ''))) return res.status(400).json({ code: 1, message: "PBX server IP must be a valid IPv4 or IPv6 address." });
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(json.meta.deviceUUID || ''))) return res.status(400).json({ code: 1, message: "Device UUID must be a valid UUIDv4." });
 
         const serverData = require('../../server/jdata');
         let cache = serverData.get(); //Require a new copy (just in case)
@@ -313,12 +345,7 @@ module.exports = function(app) {
         } else {
 
             //MAC Duplicate Check (fixes Bug in Commit #84)
-            cache.devices.forEach(device => {
-                if (device.mac === json.meta.deviceMAC) {
-                    res.send({code: 1, message: "MAC Address already exists in the system."});
-                    return;
-                }
-            });
+            if (cache.devices.some((device) => device.mac === json.meta.deviceMAC)) return res.status(409).send({code: 1, message: "MAC Address already exists in the system."});
 
 
             //Create a new device in "devices" of cache

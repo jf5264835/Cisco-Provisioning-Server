@@ -4,10 +4,11 @@
     <a href="/dashboard" class="first"><i class="icmn-equalizer"></i>&ensp;Dashboard</a>
     <a href="/dashboard/devices"><i class="icmn-phone"></i>&ensp;Devices</a>
     <!--<a><i class="icmn-lan"></i>&ensp;Sources</a>-->
-    <!--<a><i class="icmn-insert-template"></i>&ensp;Templates</a>-->
+    <a href="/dashboard/templates"><i class="icmn-insert-template"></i>&ensp;Templates</a>
+    <% if (typeof permissions !== 'undefined' && permissions === '*') { %><a href="/dashboard/users"><i class="icmn-users4"></i>&ensp;Users</a><% } %>
     <a href="/dashboard/resources"><i class="icmn-stack-empty"></i>&ensp;Resources</a>
     <a class="disabled" aria-disabled="true" title="Not implemented yet"><i class="icmn-file-xml"></i>&ensp;Services</a>
     <a class="disabled" aria-disabled="true" title="Not implemented yet"><i class="icmn-connection"></i>&ensp;Controller</a>
     <a class="disabled" aria-disabled="true" title="Not implemented yet"><i class="icmn-embed2"></i>&ensp;API</a>
-    <a class="disabled" aria-disabled="true" title="Not implemented yet"><i class="icmn-cogs"></i>&ensp;Global Settings</a>
+    <a href="/dashboard/settings"><i class="icmn-cogs"></i>&ensp;Settings</a>
 </div>
