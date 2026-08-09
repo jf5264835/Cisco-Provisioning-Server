@@ -1,5 +1,12 @@
 console.log("Loaded Master Devices");
 
+document.querySelectorAll('.device-last-seen').forEach((element) => {
+    const timestamp = new Date(element.dateTime);
+    if (Number.isNaN(timestamp.getTime())) return;
+    element.textContent = timestamp.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'medium' });
+    element.title = `Server timestamp: ${timestamp.toISOString()}`;
+});
+
 function a_createNew() {
 }
 

@@ -196,7 +196,7 @@
     <webAccess>0</webAccess>
     <webAdmin>1</webAdmin>
     <adminPassword></adminPassword>
-    <sshAccess>0</sshAccess>
+    <sshAccess>1</sshAccess>
     <detectCMConnectionFailure>0</detectCMConnectionFailure>
     <g722CodecSupport>1</g722CodecSupport>
     <handsetWidebandEnable>2</handsetWidebandEnable>
@@ -242,7 +242,7 @@
     <accessVoicemail>1</accessVoicemail>
     <accessApps>1</accessApps>
   </vendorConfig>
-  <versionStamp>d902ed5a-c1e5-4233-b1d6-a960d53d1c3a</versionStamp>
+  <versionStamp>ea01e3b4-9390-43b0-9c7b-f60ef5db5817</versionStamp>
   <loadInformation></loadInformation>
   <inactiveLoadInformation></inactiveLoadInformation>
   <!-- <addOnModules>
@@ -279,18 +279,6 @@
       <version></version>
     </phoneService>
   </phoneServices>
-  <userLocale>
-    <name></name>
-    <uid>1</uid>
-    <langCode></langCode>
-    <version></version>
-    <winCharSet>utf-8</winCharSet>
-  </userLocale>
-  <networkLocale></networkLocale>
-  <networkLocaleInfo>
-    <name></name>
-    <version></version>
-  </networkLocaleInfo>
   <deviceSecurityMode>1</deviceSecurityMode>
   <idleTimeout>0</idleTimeout>
   <authenticationURL></authenticationURL>
