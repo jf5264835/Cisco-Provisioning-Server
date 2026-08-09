@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const crypto = require('crypto');
 const createLog = require('./server/logger');
+const { getApplicationVersion } = require('./server/version');
 const app = express();
 const port = 6970; //Do not change this port, it is the default port for Cisco HTTP Provisioning
 
@@ -29,6 +30,7 @@ app.use(session({
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.locals.appVersion = getApplicationVersion();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

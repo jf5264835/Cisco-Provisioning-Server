@@ -2,7 +2,10 @@ FROM node:20-bookworm-slim
 
 WORKDIR /app
 
+ARG APP_VERSION=1.0.0
+
 ENV NODE_ENV=production \
+    APP_VERSION=${APP_VERSION} \
     DATA_FILE=/app/src/data/data.json \
     IS_DEBUG=false \
     PORT=6970

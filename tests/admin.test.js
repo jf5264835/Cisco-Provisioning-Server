@@ -5,6 +5,7 @@ const ejs = require('ejs');
 
 const views = ['settings', 'users', 'templates'];
 const locals = {
+    appVersion: 'git-test12345678',
     username: 'admin',
     name: 'Administrator',
     permissions: '*',
@@ -25,6 +26,23 @@ test('device selection exposes stable UUID values', () => {
     assert.match(view, /class="device-selection"/);
     assert.match(view, /data-device-uuid=/);
     assert.doesNotMatch(view, /return '<input type="checkbox" class="checkbox">'/);
+});
+
+test('application version follows build metadata and git commits', () => {
+    const { normalizeVersion } = require('../src/server/version');
+    const commit = '0123456789abcdef0123456789abcdef01234567';
+    assert.equal(normalizeVersion(commit), 'git-0123456789ab');
+    assert.match(fs.readFileSync('Dockerfile', 'utf8'), /APP_VERSION=\$\{APP_VERSION\}/);
+    assert.match(fs.readFileSync('.github/workflows/container.yml', 'utf8'), /APP_VERSION=\$\{\{ github\.sha \}\}/);
+    assert.doesNotMatch(fs.readFileSync('src/views/partials/footer.ejs', 'utf8'), /v0\.0\.1/);
+});
+
+test('device last-seen timestamps are localized in the browser', () => {
+    const view = fs.readFileSync('src/views/devices.ejs', 'utf8');
+    const script = fs.readFileSync('src/public/js/master-devices.js', 'utf8');
+    assert.match(view, /<time class="device-last-seen" datetime=/);
+    assert.match(script, /timestamp\.toLocaleString/);
+    assert.match(script, /timestamp\.toISOString/);
 });
 
 test('device actions remain inside authenticated management routes', () => {
